@@ -11,11 +11,11 @@ echo ""
 echo "== multilogin cli login denemeleri"
 cd /opt/Multilogin/headless
 echo "-- A: -login -u -p"
-./cli.sh -login -u "efsunlukemal@gmail.com" -p "LakeGarda123/" 2>&1 | head -3
+timeout 25 ./cli.sh -login -u "efsunlukemal@gmail.com" -p "LakeGarda123/" 2>&1 | head -5
 echo "-- B: --login --email --password"
-./cli.sh --login --email "efsunlukemal@gmail.com" --password "LakeGarda123/" 2>&1 | head -3
+timeout 25 ./cli.sh --login --email "efsunlukemal@gmail.com" --password "LakeGarda123/" 2>&1 | head -5
 echo "-- C: login -u -p (dash'siz)"
-./cli.sh login -u "efsunlukemal@gmail.com" -p "LakeGarda123/" 2>&1 | head -3
+timeout 25 ./cli.sh login -u "efsunlukemal@gmail.com" -p "LakeGarda123/" 2>&1 | head -5
 
 echo ""
 echo "== profile start (v1) PBD-01"
