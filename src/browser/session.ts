@@ -1,0 +1,241 @@
+import { chromium } from "playwright-core";
+import type { Browser, BrowserContext, Page, Route } from "playwright-core";
+import { logger } from "../logger.js";
+import { sleep } from "../util/time.js";
+
+/**
+ * Resource diet: drop heavy binary payloads (image/font/media).
+ *
+ * NOT applied automatically — per-request route interception freezes the
+ * renderer on heavy SERPs (hundreds of tracking requests = hundreds of CDP
+ * round-trips). The production diet is the --blink-settings=imagesEnabled=false
+ * launch flag (zero per-request cost). This helper stays exported for targeted
+ * manual use only (e.g. a page that must briefly render images).
+ */
+const DIET_BLOCKED_TYPES = new Set(["image", "font", "media"]);
+
+async function dietRouteHandler(route: Route): Promise<void> {
+  if (DIET_BLOCKED_TYPES.has(route.request().resourceType())) {
+    await route.abort("blockedbyclient").catch(() => {});
+    return;
+  }
+  await route.continue().catch(() => {});
+}
+
+/** Pages with an active diet route (per-page routes, so it can be lifted again). */
+const dietPages = new WeakSet<Page>();
+
+/**
+ * Toggle route-interception resource diet on ONE page. Manual/opt-in only —
+ * see the warning above; prefer the launch flag for the always-on diet.
+ */
+export async function setResourceDiet(page: Page, enabled: boolean): Promise<void> {
+  try {
+    if (enabled && !dietPages.has(page)) {
+      await page.route("**/*", dietRouteHandler);
+      dietPages.add(page);
+    } else if (!enabled && dietPages.has(page)) {
+      await page.unroute("**/*", dietRouteHandler);
+      dietPages.delete(page);
+    }
+  } catch (err) {
+    logger.debug({ err: String(err), enabled }, "resource diet toggle failed (ignored)");
+  }
+}
+
+/**
+ * A Playwright client attached (over CDP) to a browser launched by an
+ * antidetect profile (AdsPower / Multilogin).
+ *
+ * Important invariants:
+ *  - We attach to the profile's EXISTING default context. Never browser.newContext():
+ *    a fresh context drops the profile's proxy / fingerprint / cookies.
+ *  - browser.close() here only DETACHES the Playwright client; the antidetect
+ *    process keeps running and must be stopped via the driver API (caller).
+ *  - Device (desktop vs mobile) is baked into the profile, not set here.
+ */
+export class BrowserSession {
+  private constructor(
+    readonly browser: Browser,
+    readonly context: BrowserContext,
+    readonly page: Page
+  ) {}
+
+  static async attach(wsEndpoint: string, opts: { connectRetries?: number; connectBackoffMs?: number } = {}): Promise<BrowserSession> {
+    const retries = opts.connectRetries ?? 5;
+    const backoff = opts.connectBackoffMs ?? 1000;
+
+    let browser: Browser | null = null;
+    let lastErr: unknown;
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        browser = await chromium.connectOverCDP(wsEndpoint, { timeout: 20_000 });
+        break;
+      } catch (err) {
+        lastErr = err;
+        logger.warn({ attempt, err: String(err) }, "connectOverCDP failed, retrying");
+        if (attempt < retries) await sleep(backoff * attempt);
+      }
+    }
+    if (!browser) {
+      throw new Error(`Could not attach to profile browser over CDP after ${retries} tries: ${String(lastErr)}`);
+    }
+
+    const context = browser.contexts()[0];
+    if (!context) {
+      await browser.close().catch(() => {});
+      throw new Error("Profile browser has no default context — is the profile fully started?");
+    }
+    // Pick a real content tab. Mobile-simulation profiles open a devtools:// inspector tab
+    // first; navigating that tab tears down the whole browser, so it must be skipped.
+    const isContentPage = (u: string) =>
+      !u.startsWith("devtools://") && !u.startsWith("chrome://") && !u.startsWith("chrome-extension://") && !u.startsWith("edge://");
+    const usable = context.pages().find((p) => isContentPage(p.url()));
+    const page = usable ?? (await context.newPage());
+    // NOTE: no automatic setResourceDiet here — the diet lives in the
+    // --blink-settings=imagesEnabled=false launch flag (zero per-request cost).
+    return new BrowserSession(browser, context, page);
+  }
+
+  /** Open a fresh tab inside the SAME (profile) context — keeps proxy/fingerprint. */
+  async newPage(): Promise<Page> {
+    return this.context.newPage();
+  }
+
+  /**
+   * Cookie names that prove "this IP already passed Google's sorry wall".
+   * Wiping them forces a fresh /sorry on every visit.
+   */
+  private static readonly GOOGLE_TRUST_COOKIE_RE =
+    /^(GOOGLE_ABUSE_EXEMPTION|NID|__Secure-ENID|AEC|SID|HSID|SSID|APISID|SAPISID|__Secure-1PSID|__Secure-3PSID|__Secure-1PAPISID|__Secure-3PAPISID|CONSENT|SOCS)$/i;
+
+  /**
+   * Clear cookies, storage, and cache while keeping the profile's proxy and
+   * fingerprint. Used between visits so one visit's SERP is not personalised
+   * by the previous one.
+   *
+   * @param opts.preserveGoogleTrust When true, keep Google abuse-exemption /
+   *   session cookies so a previous captcha solve still protects the IP.
+   *   Non-Google cookies and cache are still cleared.
+   */
+  async clearProfileData(opts: { preserveGoogleTrust?: boolean } = {}): Promise<void> {
+    const preserve = !!opts.preserveGoogleTrust;
+    let trustCookies: Array<{
+      name: string;
+      value: string;
+      domain: string;
+      path: string;
+      expires?: number;
+      httpOnly?: boolean;
+      secure?: boolean;
+      sameSite?: "Strict" | "Lax" | "None";
+    }> = [];
+
+    if (preserve) {
+      try {
+        const all = await this.context.cookies();
+        trustCookies = all
+          .filter(
+            (c) =>
+              /google\./i.test(c.domain) && BrowserSession.GOOGLE_TRUST_COOKIE_RE.test(c.name)
+          )
+          .map((c) => ({
+            name: c.name,
+            value: c.value,
+            domain: c.domain,
+            path: c.path || "/",
+            expires: c.expires > 0 ? c.expires : undefined,
+            httpOnly: c.httpOnly,
+            secure: c.secure,
+            sameSite: c.sameSite as "Strict" | "Lax" | "None" | undefined,
+          }));
+        if (trustCookies.length) {
+          logger.info(
+            { kept: trustCookies.length, names: [...new Set(trustCookies.map((c) => c.name))] },
+            "preserving Google trust cookies across profile clear"
+          );
+        }
+      } catch (err) {
+        logger.debug({ err: String(err) }, "could not snapshot trust cookies");
+      }
+    }
+
+    try {
+      await this.context.clearCookies();
+    } catch (err) {
+      logger.debug({ err: String(err) }, "clear cookies failed (ignored)");
+    }
+
+    try {
+      await this.page.evaluate(() => {
+        try {
+          localStorage.clear();
+        } catch {}
+        try {
+          sessionStorage.clear();
+        } catch {}
+        try {
+          window.indexedDB.databases().then((dbs) => {
+            dbs.forEach((db) => {
+              if (db.name) window.indexedDB.deleteDatabase(db.name);
+            });
+          });
+        } catch {}
+      });
+    } catch (err) {
+      logger.debug({ err: String(err) }, "clear storage failed (ignored)");
+    }
+
+    try {
+      const cdp = await this.context.newCDPSession(this.page);
+      await cdp.send("Network.clearBrowserCache");
+      // Only nuke all cookies via CDP when we are NOT preserving trust — otherwise
+      // Network.clearBrowserCookies would drop what we are about to re-apply.
+      if (!preserve) {
+        await cdp.send("Network.clearBrowserCookies");
+        for (const origin of [
+          "https://www.google.com",
+          "https://google.com",
+          "https://www.google.com.tr",
+          "https://accounts.google.com",
+        ]) {
+          try {
+            await cdp.send("Storage.clearDataForOrigin", { origin, storageTypes: "all" });
+          } catch {}
+        }
+      }
+      await cdp.detach();
+    } catch (err) {
+      logger.debug({ err: String(err) }, "CDP clear cache/cookies failed (ignored)");
+    }
+
+    if (preserve && trustCookies.length) {
+      try {
+        await this.context.addCookies(
+          trustCookies.map((c) => ({
+            name: c.name,
+            value: c.value,
+            domain: c.domain,
+            path: c.path,
+            expires: c.expires,
+            httpOnly: c.httpOnly,
+            secure: c.secure,
+            sameSite: c.sameSite,
+          }))
+        );
+        logger.info({ restored: trustCookies.length }, "restored Google trust cookies after clear");
+      } catch (err) {
+        logger.warn({ err: String(err) }, "failed to restore Google trust cookies");
+      }
+    }
+  }
+
+  /** Detach the Playwright client. Does NOT terminate the antidetect session. */
+  async detach(): Promise<void> {
+    try {
+      await this.browser.close();
+    } catch (err) {
+      logger.debug({ err: String(err) }, "browser detach threw (ignored)");
+    }
+  }
+}

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PBD Ops</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <nav class="topbar">
+    <div class="brand">
+      <div class="brand-title">PBD Ops</div>
+      <div class="brand-sub">ORGANIC SIGNAL AUTOMATION</div>
+    </div>
+    <div class="topbar-nav">
+      <button class="nav-item active" data-view="calendar">Takvim</button>
+      <button class="nav-item" data-view="positions">Pozisyonlar</button>
+      <button class="nav-item" data-view="visits">Ziyaretler</button>
+      <button class="nav-item" data-view="health">Sağlık</button>
+    </div>
+    <div class="topbar-right">
+      <div class="pill" id="pill-engine">—</div>
+      <div class="pill" id="pill-vault">—</div>
+    </div>
+  </nav>
+
+  <main class="container">
+    <!-- ═══ TAKVİM ═══ -->
+    <div class="view active" id="view-calendar">
+      <header class="page-header">
+        <h1>Takvim</h1>
+        <p class="subtitle">Rampa günü, günlük kota ve bugünkü ziyaret planı.</p>
+      </header>
+      <section class="panel">
+        <div class="panel-head"><h2>Rampa</h2></div>
+        <div class="panel-body" id="ramp-strip"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>Bugünkü Plan</h2></div>
+        <div class="panel-body">
+          <table class="tbl" id="plan-table">
+            <thead><tr><th>Saat</th><th>Profil</th><th>Keyword</th><th>Hedef</th><th>Durum</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- ═══ POZİSYONLAR ═══ -->
+    <div class="view" id="view-positions">
+      <header class="page-header">
+        <h1>Pozisyonlar</h1>
+        <p class="subtitle">Keyword bazında organik pozisyon trendi.</p>
+      </header>
+      <section class="panel">
+        <div class="panel-body" id="positions-list"></div>
+      </section>
+    </div>
+
+    <!-- ═══ ZİYARETLER ═══ -->
+    <div class="view" id="view-visits">
+      <header class="page-header">
+        <h1>Ziyaretler</h1>
+        <p class="subtitle">Son ziyaret denemeleri.</p>
+      </header>
+      <section class="panel">
+        <div class="panel-body">
+          <table class="tbl" id="visits-table">
+            <thead><tr><th>Zaman</th><th>Profil</th><th>Keyword</th><th>Site</th><th>Poz.</th><th>Durum</th><th>Dwell</th><th>İç Link</th><th>Hata</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- ═══ SAĞLIK ═══ -->
+    <div class="view" id="view-health">
+      <header class="page-header">
+        <h1>Sağlık</h1>
+        <p class="subtitle">IP-trust vault — profil başına Google güven durumu.</p>
+      </header>
+      <section class="panel">
+        <div class="panel-head"><h2>Vault Özeti</h2></div>
+        <div class="panel-body" id="vault-summary"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-body">
+          <table class="tbl" id="vault-table">
+            <thead><tr><th>Profil</th><th>Cihaz</th><th>Durum</th><th>Art arda hata</th><th>Çözüm</th><th>Son temiz</th><th>Sonraki deneme</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+{
+  "antidetect": {
+    "driver": "adspower",
+    "requestIntervalMs": 1100
+  },
+  "google": {
+    "domain": "www.google.com",
+    "hl": "tr",
+    "gl": "tr",
+    "num": 10,
+    "uule": "",
+    "extraParams": {}
+  },
+  "location": {
+    "country": "TR"
+  },
+  "sites": [
+    {
+      "domain": "example.com",
+      "keywords": ["example keyword"],
+      "weight": 1
+    }
+  ],
+  "ramp": {
+    "startDate": "",
+    "dayOneVisits": 20,
+    "plateauVisits": 100,
+    "rampDays": 8,
+    "perIpDailyCap": 10,
+    "perProfileDailyCap": 10,
+    "peakStartHour": 8,
+    "peakEndHour": 25,
+    "quietStartHour": 3,
+    "quietEndHour": 7
+  },
+  "engine": {
+    "concurrency": 2,
+    "tickSeconds": 60,
+    "visitJitterMinMs": 20000,
+    "visitJitterMaxMs": 90000,
+    "navTimeoutMs": 45000
+  },
+  "profiles": {
+    "prefixes": ["PBD-"],
+    "ids": []
+  },
+  "behavior": {
+    "dwellMinMs": 25000,
+    "dwellMaxMs": 70000,
+    "scrollWaypoints": [0.25, 0.5, 0.75, 1.0],
+    "scrollReachChance": 0.75,
+    "mouseMoveChance": 0.6,
+    "internalLinks": {
+      "enabled": true,
+      "chance": 0.4,
+      "maxClicks": 2,
+      "minStayMs": 10000,
+      "maxStayMs": 30000
+    },
+    "rivalCompare": {
+      "enabled": false,
+      "chance": 0.15,
+      "minStayMs": 8000,
+      "maxStayMs": 20000
+    },
+    "exitMode": "close"
+  },
+  "solver": {
+    "enabled": false,
+    "provider": "auto",
+    "maxAttemptsPerWall": 2,
+    "maxSolvesPerHour": 20,
+    "maxSolvesPerDay": 120
+  },
+  "panel": {
+    "port": 3080
+  },
+  "output": {
+    "dir": "./data"
+  }
+}

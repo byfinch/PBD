@@ -1,0 +1,5 @@
+node_modules/
+.ssh-tools/
+dist/
+data/
+.env

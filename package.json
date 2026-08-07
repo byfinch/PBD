@@ -1,0 +1,39 @@
+{
+  "name": "pbd",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Organic SERP SEO-signal automation: keyword search → find target site in organic results → human-like click + on-site behaviour, driven by antidetect profiles (AdsPower / Multilogin) with TR proxies",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "pbd": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/copy-web-assets.mjs",
+    "web": "node dist/index.js web",
+    "visit": "node dist/index.js visit --once",
+    "track": "node dist/index.js track",
+    "profiles": "node dist/index.js profiles",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.7",
+    "express": "^5.2.1",
+    "pino": "^9.6.0",
+    "playwright-core": "^1.62.1",
+    "ssh2": "^1.17.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.10.5",
+    "pino-pretty": "^13.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
