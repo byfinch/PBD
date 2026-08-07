@@ -1,6 +1,6 @@
 {
   "antidetect": {
-    "driver": "adspower",
+    "driver": "multilogin",
     "requestIntervalMs": 1100
   },
   "google": {
