@@ -1,8 +1,13 @@
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Agent, fetch as uFetch } from "undici";
 import { RateLimiter } from "../util/time.js";
 import { logger } from "../logger.js";
 import type { AntidetectClient, AntidetectProfile } from "./client.js";
+
+const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 /**
  * Multilogin X launcher driver — verified against a live MLX agent (2026-08).
@@ -168,7 +173,14 @@ export class MultiloginDriver implements AntidetectClient {
       await this.request<MlxFolder[]>("/api/v1/folders");
       return true;
     } catch {
-      return false;
+      // Agent builds without the folders endpoint: cloud signin + local mapping
+      // are enough proof that the driver can operate.
+      try {
+        await this.getToken();
+        return this.listFromMapping().length > 0;
+      } catch {
+        return false;
+      }
     }
   }
 
@@ -180,12 +192,41 @@ export class MultiloginDriver implements AntidetectClient {
     return first.folder_id;
   }
 
+  /**
+   * Fallback for agent builds without /api/v1/profile/search (ours 404s):
+   * read the repo-shipped config/profiles.json mapping. Proxy host/port/pass
+   * come from env so secrets stay out of the repo.
+   */
+  private listFromMapping(): AntidetectProfile[] {
+    const file = JSON.parse(readFileSync(resolve(PROJECT_ROOT, "config/profiles.json"), "utf8")) as {
+      folderId?: string;
+      profiles?: Array<{ name: string; id: string; proxyLogin?: string }>;
+    };
+    const host = process.env.MULTILOGIN_PROXY_HOST ?? "";
+    const port = Number(process.env.MULTILOGIN_PROXY_PORT ?? 0);
+    const password = process.env.MULTILOGIN_PROXY_PASSWORD ?? "";
+    return (file.profiles ?? []).map((p) => {
+      if (file.folderId) this.folderByProfile.set(p.id, file.folderId);
+      const proxy: AntidetectProfile["proxy"] =
+        host && port
+          ? { host, port, user: p.proxyLogin || undefined, password: password || undefined, type: "SOCKS5" }
+          : undefined;
+      return { id: p.id, name: p.name, proxy };
+    });
+  }
+
   async listProfiles(): Promise<AntidetectProfile[]> {
     const folderId = await this.resolveFolderId();
-    const data = await this.request<{ profiles?: MlxProfile[] } | MlxProfile[]>("/api/v1/profile/search", {
-      body: { query: "", folder_id: folderId, limit: 200, offset: 0 },
-    });
-    const list = Array.isArray(data) ? data : (data.profiles ?? []);
+    let list: MlxProfile[];
+    try {
+      const data = await this.request<{ profiles?: MlxProfile[] } | MlxProfile[]>("/api/v1/profile/search", {
+        body: { query: "", folder_id: folderId, limit: 200, offset: 0 },
+      });
+      list = Array.isArray(data) ? data : (data.profiles ?? []);
+    } catch (err) {
+      logger.warn({ err: String(err) }, "profile search unavailable — using config/profiles.json mapping");
+      return this.listFromMapping();
+    }
     return list.map((p) => {
       this.folderByProfile.set(p.id, p.folder_id || folderId);
       let proxy: AntidetectProfile["proxy"];
