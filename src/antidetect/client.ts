@@ -23,7 +23,7 @@ export interface AntidetectProfile {
 
 /**
  * The one contract the engine depends on. Implementations: AdsPower Local API
- * (default) and Multilogin X Local API v2 (localhost:35000).
+ * (default) and Multilogin X launcher API (launcher.mlx.yt:45001).
  */
 export interface AntidetectClient {
   readonly driver: "adspower" | "multilogin";
@@ -43,10 +43,15 @@ export interface AntidetectClient {
 /** Build the configured driver. */
 export function createAntidetectClient(config: AppConfig): AntidetectClient {
   if (config.antidetect.driver === "multilogin") {
-    const baseUrl = process.env.MULTILOGIN_BASE_URL ?? "http://localhost:35000";
+    const baseUrl = process.env.MULTILOGIN_BASE_URL ?? "https://launcher.mlx.yt:45001";
     const folderId = process.env.MULTILOGIN_FOLDER_ID ?? "";
+    const email = process.env.MULTILOGIN_EMAIL ?? "";
+    const password = process.env.MULTILOGIN_PASSWORD ?? "";
+    if (!email || !password) {
+      logger.warn("MULTILOGIN_EMAIL / MULTILOGIN_PASSWORD not set — launcher calls will fail auth");
+    }
     logger.info({ baseUrl }, "antidetect driver: multilogin");
-    return new MultiloginDriver(baseUrl, folderId, config.antidetect.requestIntervalMs);
+    return new MultiloginDriver(baseUrl, folderId, email, password, config.antidetect.requestIntervalMs);
   }
   const baseUrl = process.env.ADSPOWER_BASE_URL ?? "http://local.adspower.net:50325";
   const apiKey = process.env.ADSPOWER_API_KEY ?? "";

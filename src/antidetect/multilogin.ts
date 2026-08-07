@@ -1,25 +1,39 @@
+import { createHash } from "node:crypto";
+import { Agent, fetch as uFetch } from "undici";
 import { RateLimiter } from "../util/time.js";
 import { logger } from "../logger.js";
 import type { AntidetectClient, AntidetectProfile } from "./client.js";
 
 /**
- * Multilogin X Local API driver (default http://localhost:35000, "Local API v2").
+ * Multilogin X launcher driver — verified against a live MLX agent (2026-08).
  *
- * Endpoint map (Multilogin X local API docs):
- *  - GET  /api/v1/folders                                → workspace folders
- *  - POST /api/v1/profile/search { query, folder_id }    → profile list
- *  - POST /api/v2/profile/f/{folderId}/p/{profileId}/start?automation_type=playwright
- *        → { data: { port } } — the profile's Chromium debugger port; the CDP
- *          websocket is then read from http://127.0.0.1:{port}/json/version.
- *  - POST /api/v2/profile/f/{folderId}/p/{profileId}/stop
+ * Verified API shape:
+ *  - Auth: POST https://api.multilogin.com/user/signin
+ *      body { email, password: md5(password) } → { data: { token } }
+ *      The Bearer token is required on EVERY launcher call; it expires in ~30
+ *      min, so it is cached and refreshed proactively / on 401.
+ *  - Start: GET {base}/api/v2/profile/f/{folderId}/p/{profileId}/start
+ *      ?automation_type=playwright&headless_mode=false
+ *      → { data: { port: "44901" (string!), ... }, status: { error_code: "" } }
+ *      CDP http endpoint is then http://127.0.0.1:{port}/json/version.
+ *  - Stop:  GET {base}/api/v1/profile/stop/p/{profileId}   (v1 base, no folder!)
+ *  - While the Mimic core downloads (first launch), start answers
+ *      error_code CORE_DOWNLOADING_STARTED / http_code 500 — poll until ready.
+ *  - Envelope: { status: { error_code: string, http_code: number, message },
+ *                data: ... } — an empty error_code means success.
  *
- * NOTE: this driver is written against the published API shape but has NOT been
- * verified against a live Multilogin install — field names may need a small
- * adjustment on first real run (check the logged response bodies).
+ * The launcher serves a self-signed cert on https://launcher.mlx.yt:45001
+ * (loopback alias), so launcher calls go through an undici agent with
+ * rejectUnauthorized=false. The cloud API keeps normal TLS verification.
  */
 
+const CLOUD_SIGNIN_URL = "https://api.multilogin.com/user/signin";
+const TOKEN_TTL_MS = 25 * 60 * 1000; // refresh before the 30-min expiry
+const CORE_DOWNLOAD_TIMEOUT_MS = 10 * 60 * 1000;
+const CORE_DOWNLOAD_POLL_MS = 15_000;
+
 interface MlxEnvelope<T> {
-  status?: { message?: string; http_code?: string };
+  status?: { error_code?: string; http_code?: number | string; message?: string };
   data: T;
 }
 
@@ -44,7 +58,8 @@ interface MlxProfile {
 export class MultiloginError extends Error {
   constructor(
     message: string,
-    readonly path: string
+    readonly path: string,
+    readonly errorCode?: string
   ) {
     super(`Multilogin ${path}: ${message}`);
     this.name = "MultiloginError";
@@ -54,16 +69,51 @@ export class MultiloginError extends Error {
 export class MultiloginDriver implements AntidetectClient {
   readonly driver = "multilogin" as const;
   private readonly limiter: RateLimiter;
-  /** profileId → folderId (Multilogin start/stop URLs are folder-scoped). */
+  /** profileId → folderId (start URLs are folder-scoped). */
   private readonly folderByProfile = new Map<string, string>();
+  /** The launcher cert is self-signed (loopback alias) — skip verification. */
+  private readonly insecureTls = new Agent({ connect: { rejectUnauthorized: false } });
+  private token: string | null = null;
+  private tokenAt = 0;
 
   constructor(
     private readonly baseUrl: string,
     private readonly defaultFolderId: string,
+    private readonly email: string,
+    private readonly password: string,
     requestIntervalMs: number
   ) {
     this.limiter = new RateLimiter(requestIntervalMs);
   }
+
+  // ---------------------------------------------------------------- auth ---
+
+  private async signin(): Promise<string> {
+    const res = await fetch(CLOUD_SIGNIN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        email: this.email,
+        password: createHash("md5").update(this.password).digest("hex"),
+      }),
+      signal: AbortSignal.timeout(30_000),
+    });
+    const json = (await res.json().catch(() => null)) as MlxEnvelope<{ token?: string }> | null;
+    const token = json?.data?.token;
+    if (!res.ok || !token) {
+      throw new MultiloginError(`signin failed (HTTP ${res.status})`, "/user/signin");
+    }
+    this.token = token;
+    this.tokenAt = Date.now();
+    return token;
+  }
+
+  private async getToken(): Promise<string> {
+    if (this.token && Date.now() - this.tokenAt < TOKEN_TTL_MS) return this.token;
+    return this.signin();
+  }
+
+  // ------------------------------------------------------------- request ---
 
   private buildUrl(path: string, params?: Record<string, string | number | boolean | undefined>): string {
     const url = new URL(path, this.baseUrl);
@@ -77,32 +127,44 @@ export class MultiloginDriver implements AntidetectClient {
 
   private async request<T>(
     path: string,
-    opts: { params?: Record<string, string | number | boolean | undefined>; method?: "GET" | "POST"; body?: unknown } = {}
+    opts: { params?: Record<string, string | number | boolean | undefined>; body?: unknown; retried?: boolean } = {}
   ): Promise<T> {
-    const method = opts.method ?? "GET";
+    const method = opts.body !== undefined ? "POST" : "GET";
     return this.limiter.schedule(async () => {
-      const res = await fetch(this.buildUrl(path, opts.params), {
+      const token = await this.getToken();
+      const res = await uFetch(this.buildUrl(path, opts.params), {
         method,
-        headers: opts.body !== undefined ? { "Content-Type": "application/json" } : {},
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+          ...(opts.body !== undefined ? { "Content-Type": "application/json" } : {}),
+        },
         body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
-        signal: AbortSignal.timeout(30_000),
+        dispatcher: this.insecureTls,
+        signal: AbortSignal.timeout(180_000), // first start may download the core
       });
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new MultiloginError(`HTTP ${res.status}: ${text.slice(0, 160)}`, path);
+      const json = (await res.json().catch(() => null)) as MlxEnvelope<T> | null;
+
+      // Expired/invalid token → one refresh + retry.
+      if ((res.status === 401 || res.status === 403) && !opts.retried) {
+        logger.warn({ path, status: res.status }, "multilogin token rejected, refreshing");
+        this.token = null;
+        return this.request<T>(path, { ...opts, retried: true });
       }
-      const json = (await res.json()) as MlxEnvelope<T>;
-      const code = json.status?.http_code;
-      if (code && code !== "OK" && code !== "200") {
-        throw new MultiloginError(json.status?.message ?? `http_code=${code}`, path);
+
+      const errorCode = json?.status?.error_code ?? "";
+      if (!res.ok || errorCode) {
+        const message = json?.status?.message ?? `HTTP ${res.status}`;
+        throw new MultiloginError(errorCode ? `${errorCode}: ${message}` : message, path, errorCode || undefined);
       }
-      return json.data;
+      return (json as MlxEnvelope<T>).data;
     });
   }
 
+  // ----------------------------------------------------------------- api ---
+
   async isUp(): Promise<boolean> {
     try {
-      // Any cheap authenticated endpoint works as a liveness probe.
       await this.request<MlxFolder[]>("/api/v1/folders");
       return true;
     } catch {
@@ -121,7 +183,6 @@ export class MultiloginDriver implements AntidetectClient {
   async listProfiles(): Promise<AntidetectProfile[]> {
     const folderId = await this.resolveFolderId();
     const data = await this.request<{ profiles?: MlxProfile[] } | MlxProfile[]>("/api/v1/profile/search", {
-      method: "POST",
       body: { query: "", folder_id: folderId, limit: 200, offset: 0 },
     });
     const list = Array.isArray(data) ? data : (data.profiles ?? []);
@@ -156,13 +217,43 @@ export class MultiloginDriver implements AntidetectClient {
     return this.folderByProfile.get(profileId) ?? this.resolveFolderId();
   }
 
+  private async rawStart(profileId: string, folderId: string): Promise<{ port: string }> {
+    return this.request<{ port?: string | number }>(
+      `/api/v2/profile/f/${encodeURIComponent(folderId)}/p/${encodeURIComponent(profileId)}/start`,
+      { params: { automation_type: "playwright", headless_mode: false } }
+    ).then((d) => ({ port: String(d?.port ?? "") }));
+  }
+
   /** Start the profile and return its CDP websocket endpoint. */
   async startBrowser(profileId: string): Promise<string> {
     const folderId = await this.folderFor(profileId);
-    const started = await this.request<{ port?: number }>(
-      `/api/v2/profile/f/${encodeURIComponent(folderId)}/p/${encodeURIComponent(profileId)}/start`,
-      { method: "POST", params: { automation_type: "playwright", headless_mode: false } }
-    );
+
+    // First-ever launch triggers a Mimic core download — poll until it is done.
+    const deadline = Date.now() + CORE_DOWNLOAD_TIMEOUT_MS;
+    let started: { port: string } | null = null;
+    for (;;) {
+      try {
+        started = await this.rawStart(profileId, folderId);
+        break;
+      } catch (err) {
+        const code = err instanceof MultiloginError ? err.errorCode : undefined;
+        if (code?.includes("CORE_DOWNLOADING") && Date.now() < deadline) {
+          logger.info({ profileId }, "mimic core downloading, waiting");
+          await new Promise((r) => setTimeout(r, CORE_DOWNLOAD_POLL_MS));
+          continue;
+        }
+        if (code === "PROFILE_ALREADY_RUNNING") {
+          // Stale browser process from a crashed run — stop and retry once.
+          logger.warn({ profileId }, "profile already running, stopping stale browser");
+          await this.stopBrowser(profileId).catch(() => {});
+          await new Promise((r) => setTimeout(r, 5_000));
+          started = await this.rawStart(profileId, folderId);
+          break;
+        }
+        throw err;
+      }
+    }
+
     if (!started?.port) {
       throw new MultiloginError("profile start returned no debugger port", "/api/v2/profile/start");
     }
@@ -178,10 +269,7 @@ export class MultiloginDriver implements AntidetectClient {
   }
 
   async stopBrowser(profileId: string): Promise<void> {
-    const folderId = await this.folderFor(profileId);
-    await this.request<unknown>(
-      `/api/v2/profile/f/${encodeURIComponent(folderId)}/p/${encodeURIComponent(profileId)}/stop`,
-      { method: "POST" }
-    );
+    // Verified: stop lives on the v1 base and is NOT folder-scoped.
+    await this.request<unknown>(`/api/v1/profile/stop/p/${encodeURIComponent(profileId)}`);
   }
 }
