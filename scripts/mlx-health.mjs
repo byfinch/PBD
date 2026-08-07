@@ -1,17 +1,13 @@
 #!/usr/bin/env node
 /**
- * mlx-health.mjs — 10 MLX profili için saglik turu.
- * Her profil icin: start -> CDP baglan -> ip-api.com/json -> exit IP dogrula -> stop.
+ * mlx-health.mjs — 10 MLX profili icin saglik turu (v2).
+ * Her profil: start -> CDP -> exit IP (ipify/ifconfig fallback) + Google 200/sorry -> stop.
  * Kullanim: node scripts/mlx-health.mjs   (PBD kok dizininden; .env okunur)
  */
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { Agent, fetch as uFetch } from "undici";
 import { chromium } from "playwright-core";
-
-const BASE = process.env.MULTILOGIN_BASE_URL || "https://launcher.mlx.yt:45001";
-const EMAIL = process.env.MULTILOGIN_EMAIL || "";
-const PASSWORD = process.env.MULTILOGIN_PASSWORD || "";
 
 // .env varsa yukle (dotenv'siz, basit parse)
 try {
@@ -21,9 +17,9 @@ try {
   }
 } catch {}
 
-const email = process.env.MULTILOGIN_EMAIL || EMAIL;
-const password = process.env.MULTILOGIN_PASSWORD || PASSWORD;
-const base = process.env.MULTILOGIN_BASE_URL || BASE;
+const email = process.env.MULTILOGIN_EMAIL || "";
+const password = process.env.MULTILOGIN_PASSWORD || "";
+const base = process.env.MULTILOGIN_BASE_URL || "https://launcher.mlx.yt:45001";
 if (!email || !password) {
   console.error("MULTILOGIN_EMAIL/PASSWORD yok (.env)");
   process.exit(1);
@@ -73,28 +69,76 @@ async function startProfile(token, p) {
   }
 }
 
-async function checkProfile(token, p) {
+const IP_SOURCES = [
+  { url: "https://api.ipify.org?format=json", pick: (t) => JSON.parse(t).ip },
+  { url: "https://ifconfig.me/ip", pick: (t) => t.trim() },
+  { url: "https://ipapi.co/json/", pick: (t) => JSON.parse(t).ip },
+];
+
+async function readBodyText(page) {
+  return page.evaluate(() => document.body?.innerText ?? "");
+}
+
+async function checkOnce(token, p) {
   const port = await startProfile(token, p);
   let browser;
   try {
     browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`, { timeout: 15000 });
     const ctx = browser.contexts()[0];
     const page = ctx.pages()[0] ?? (await ctx.newPage());
-    const res = await page.goto("http://ip-api.com/json/?fields=status,query,country,city", {
-      timeout: 45000,
-      waitUntil: "domcontentloaded",
-    });
-    const text = await page.evaluate(() => document.body.innerText);
-    const info = JSON.parse(text);
-    const match = info.query === p.exitIp;
-    return {
-      ok: match && info.status === "success",
-      detail: `${info.query} ${info.country}/${info.city} http:${res?.status()}${match ? "" : " BEKLENEN:" + p.exitIp}`,
-    };
+
+    // 1) exit IP
+    let ip = "";
+    let ipErr = "";
+    for (const src of IP_SOURCES) {
+      try {
+        const res = await page.goto(src.url, { timeout: 30000, waitUntil: "domcontentloaded" });
+        if (!res || res.status() !== 200) {
+          ipErr = `${src.url} http:${res?.status()}`;
+          continue;
+        }
+        ip = src.pick(await readBodyText(page));
+        if (ip) break;
+      } catch (e) {
+        ipErr = String(e).slice(0, 60);
+      }
+    }
+
+    // 2) Google erisimi (asli hedef metrik)
+    let gStatus = 0;
+    let sorry = false;
+    try {
+      const gres = await page.goto("https://www.google.com/search?q=ucak+bileti&hl=tr&gl=tr", {
+        timeout: 45000,
+        waitUntil: "domcontentloaded",
+      });
+      gStatus = gres?.status() ?? 0;
+      sorry = page.url().includes("/sorry");
+    } catch (e) {
+      ipErr += " | google: " + String(e).slice(0, 50);
+    }
+
+    const ipMatch = ip === p.exitIp;
+    const ok = ipMatch && gStatus === 200 && !sorry;
+    const detail = `ip:${ip || "YOK"}${ipMatch ? "" : " BEKLENEN:" + p.exitIp} google:${gStatus}${sorry ? " SORRY" : ""}${ok ? "" : " (" + ipErr + ")"}`;
+    return { ok, detail };
   } finally {
     if (browser) await browser.close().catch(() => {});
     await api(token, `/api/v1/profile/stop/p/${p.id}`).catch(() => {});
   }
+}
+
+async function checkProfile(token, p) {
+  let lastErr = null;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      return await checkOnce(token, p);
+    } catch (err) {
+      lastErr = err;
+      await new Promise((s) => setTimeout(s, 3000));
+    }
+  }
+  throw lastErr;
 }
 
 const token = await signin();
