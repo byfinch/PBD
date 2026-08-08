@@ -19,6 +19,29 @@ export interface VisitRow {
   error: string;
   startedAt: string;
   finishedAt: string | null;
+  serpShot: string;
+  landShot: string;
+  failShot: string;
+  landedUrl: string;
+}
+
+export interface SiteRow {
+  id: number;
+  domain: string;
+  weight: number;
+  keywords: string[];
+  createdAt: string;
+}
+
+export interface ProfileStat {
+  profileId: string;
+  profileName: string;
+  today: number;
+  visited7d: number;
+  failed7d: number;
+  lastStatus: string;
+  lastError: string;
+  lastAt: string;
 }
 
 export interface PositionRow {
@@ -99,10 +122,23 @@ export class Store {
         value TEXT NOT NULL
       );
 
+      CREATE TABLE IF NOT EXISTS solver_calls (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        provider   TEXT NOT NULL,
+        profile_id TEXT NOT NULL DEFAULT '',
+        outcome    TEXT,
+        created_at TEXT NOT NULL
+      );
+
       CREATE INDEX IF NOT EXISTS idx_visits_date    ON visits(date);
       CREATE INDEX IF NOT EXISTS idx_visits_profile ON visits(profile_id, date);
       CREATE INDEX IF NOT EXISTS idx_positions_key  ON positions(keyword, domain, date);
     `);
+    // Evidence columns (added after the initial schema — guard for existing DBs).
+    const cols = (this.db.prepare(`PRAGMA table_info(visits)`).all() as Array<{ name: string }>).map((c) => c.name);
+    for (const col of ["serp_shot", "land_shot", "fail_shot", "landed_url"]) {
+      if (!cols.includes(col)) this.db.exec(`ALTER TABLE visits ADD COLUMN ${col} TEXT NOT NULL DEFAULT ''`);
+    }
   }
 
   // ── meta kv ─────────────────────────────────────────────────────────────
@@ -142,6 +178,109 @@ export class Store {
       this.db.exec("ROLLBACK");
       throw err;
     }
+  }
+
+  // ── sites CRUD (panel-managed; DB is the source of truth once non-empty) ──
+
+  listSites(): SiteRow[] {
+    const sites = this.db.prepare(`SELECT * FROM sites ORDER BY domain`).all() as Record<string, unknown>[];
+    const kwStmt = this.db.prepare(`SELECT keyword FROM keywords WHERE site_id = ? ORDER BY keyword`);
+    return sites.map((s) => ({
+      id: Number(s.id),
+      domain: String(s.domain),
+      weight: Number(s.weight),
+      createdAt: String(s.created_at),
+      keywords: (kwStmt.all(Number(s.id)) as Array<{ keyword: string }>).map((k) => k.keyword),
+    }));
+  }
+
+  addSite(domain: string, keywords: string[], weight = 1): SiteRow {
+    const now = new Date().toISOString();
+    this.db
+      .prepare(
+        `INSERT INTO sites (domain, weight, created_at) VALUES (?, ?, ?)
+         ON CONFLICT(domain) DO UPDATE SET weight = excluded.weight`
+      )
+      .run(domain, weight, now);
+    const id = (this.db.prepare(`SELECT id FROM sites WHERE domain = ?`).get(domain) as { id: number }).id;
+    const kwStmt = this.db.prepare(
+      `INSERT INTO keywords (site_id, keyword, created_at) VALUES (?, ?, ?)
+       ON CONFLICT(site_id, keyword) DO NOTHING`
+    );
+    for (const kw of keywords) kwStmt.run(id, kw, now);
+    return this.listSites().find((s) => s.id === id)!;
+  }
+
+  /** Full-replace keywords of a site (and optionally its weight). */
+  updateSite(id: number, input: { weight?: number; keywords?: string[] }): void {
+    if (input.weight !== undefined) {
+      this.db.prepare(`UPDATE sites SET weight = ? WHERE id = ?`).run(input.weight, id);
+    }
+    if (input.keywords) {
+      this.db.prepare(`DELETE FROM keywords WHERE site_id = ?`).run(id);
+      const now = new Date().toISOString();
+      const kwStmt = this.db.prepare(
+        `INSERT INTO keywords (site_id, keyword, created_at) VALUES (?, ?, ?)
+         ON CONFLICT(site_id, keyword) DO NOTHING`
+      );
+      for (const kw of input.keywords) kwStmt.run(id, kw, now);
+    }
+  }
+
+  deleteSite(id: number): void {
+    this.db.prepare(`DELETE FROM sites WHERE id = ?`).run(id);
+  }
+
+  // ── per-profile performance (panel "did the profile do its job" view) ────
+
+  profileStats(): ProfileStat[] {
+    const rows = this.db
+      .prepare(
+        `SELECT profile_id, profile_name,
+                SUM(CASE WHEN date = date('now','localtime') AND status != 'skipped' THEN 1 ELSE 0 END) AS today,
+                SUM(CASE WHEN started_at > datetime('now','-7 days') AND status = 'visited' THEN 1 ELSE 0 END) AS visited7d,
+                SUM(CASE WHEN started_at > datetime('now','-7 days') AND status IN ('error','captcha') THEN 1 ELSE 0 END) AS failed7d
+         FROM visits GROUP BY profile_id ORDER BY profile_name`
+      )
+      .all() as Record<string, unknown>[];
+    const lastStmt = this.db.prepare(
+      `SELECT status, error, started_at FROM visits WHERE profile_id = ? ORDER BY id DESC LIMIT 1`
+    );
+    return rows.map((r) => {
+      const last = lastStmt.get(String(r.profile_id)) as
+        | { status: string; error: string; started_at: string }
+        | undefined;
+      return {
+        profileId: String(r.profile_id),
+        profileName: String(r.profile_name ?? ""),
+        today: Number(r.today ?? 0),
+        visited7d: Number(r.visited7d ?? 0),
+        failed7d: Number(r.failed7d ?? 0),
+        lastStatus: last?.status ?? "",
+        lastError: last?.error ?? "",
+        lastAt: last?.started_at ?? "",
+      };
+    });
+  }
+
+  // ── solver cost counters (policy writes solver_calls) ───────────────────
+
+  solverStats(): { today: number; total: number; cleared: number; byProvider: Record<string, number> } {
+    const total = (this.db.prepare(`SELECT COUNT(*) AS n FROM solver_calls`).get() as { n: number }).n;
+    const today = (
+      this.db.prepare(`SELECT COUNT(*) AS n FROM solver_calls WHERE created_at > date('now','localtime')`).get() as {
+        n: number;
+      }
+    ).n;
+    const cleared = (
+      this.db.prepare(`SELECT COUNT(*) AS n FROM solver_calls WHERE outcome = 'cleared'`).get() as { n: number }
+    ).n;
+    const rows = this.db
+      .prepare(`SELECT provider, COUNT(*) AS n FROM solver_calls GROUP BY provider`)
+      .all() as Array<{ provider: string; n: number }>;
+    const byProvider: Record<string, number> = {};
+    for (const r of rows) byProvider[r.provider] = Number(r.n);
+    return { today, total, cleared, byProvider };
   }
 
   // ── visits ──────────────────────────────────────────────────────────────
@@ -208,7 +347,81 @@ export class Store {
     const rows = this.db
       .prepare(`SELECT * FROM visits ORDER BY id DESC LIMIT ?`)
       .all(limit) as Record<string, unknown>[];
+    return rows.map((r) => this.visitRowFromDb(r));
+  }
+
+  /** Server-side paginated visit log with optional filters. */
+  visitsPage(opts: {
+    page: number;
+    per: number;
+    status?: string;
+    domain?: string;
+    profile?: string;
+  }): { rows: VisitRow[]; total: number } {
+    const where: string[] = [];
+    const args: Array<string | number> = [];
+    if (opts.status) {
+      where.push(`status = ?`);
+      args.push(opts.status);
+    }
+    if (opts.domain) {
+      where.push(`site_domain = ?`);
+      args.push(opts.domain);
+    }
+    if (opts.profile) {
+      where.push(`profile_name = ?`);
+      args.push(opts.profile);
+    }
+    const clause = where.length ? `WHERE ${where.join(" AND ")}` : "";
+    const total = (this.db.prepare(`SELECT COUNT(*) AS n FROM visits ${clause}`).get(...args) as { n: number }).n;
+    const rows = this.db
+      .prepare(`SELECT * FROM visits ${clause} ORDER BY id DESC LIMIT ? OFFSET ?`)
+      .all(...args, opts.per, (opts.page - 1) * opts.per) as Record<string, unknown>[];
+    return { rows: rows.map((r) => this.visitRowFromDb(r)), total };
+  }
+
+  /** Attach evidence file names + landing URL to a finished visit. */
+  setVisitEvidence(
+    visitId: number,
+    ev: { serpShot?: string; landShot?: string; failShot?: string; landedUrl?: string }
+  ): void {
+    this.db
+      .prepare(
+        `UPDATE visits SET
+           serp_shot   = COALESCE(?, serp_shot),
+           land_shot   = COALESCE(?, land_shot),
+           fail_shot   = COALESCE(?, fail_shot),
+           landed_url  = COALESCE(?, landed_url)
+         WHERE id = ?`
+      )
+      .run(ev.serpShot ?? null, ev.landShot ?? null, ev.failShot ?? null, (ev.landedUrl ?? "").slice(0, 500) || null, visitId);
+  }
+
+  /** Evidence files whose visit is older than retentionDays — for the cleanup job. */
+  oldEvidence(retentionDays: number): Array<{ id: number; serpShot: string; landShot: string; failShot: string }> {
+    const rows = this.db
+      .prepare(
+        `SELECT id, serp_shot, land_shot, fail_shot FROM visits
+         WHERE started_at < datetime('now', '-' || ? || ' days')
+           AND (serp_shot != '' OR land_shot != '' OR fail_shot != '')`
+      )
+      .all(retentionDays) as Record<string, unknown>[];
     return rows.map((r) => ({
+      id: Number(r.id),
+      serpShot: String(r.serp_shot ?? ""),
+      landShot: String(r.land_shot ?? ""),
+      failShot: String(r.fail_shot ?? ""),
+    }));
+  }
+
+  clearEvidencePaths(ids: number[]): void {
+    if (!ids.length) return;
+    const stmt = this.db.prepare(`UPDATE visits SET serp_shot = '', land_shot = '', fail_shot = '' WHERE id = ?`);
+    for (const id of ids) stmt.run(id);
+  }
+
+  private visitRowFromDb(r: Record<string, unknown>): VisitRow {
+    return {
       id: Number(r.id),
       date: String(r.date),
       profileId: String(r.profile_id),
@@ -222,7 +435,11 @@ export class Store {
       error: String(r.error ?? ""),
       startedAt: String(r.started_at),
       finishedAt: (r.finished_at as string) ?? null,
-    }));
+      serpShot: String(r.serp_shot ?? ""),
+      landShot: String(r.land_shot ?? ""),
+      failShot: String(r.fail_shot ?? ""),
+      landedUrl: String(r.landed_url ?? ""),
+    };
   }
 
   // ── positions (rank history) ────────────────────────────────────────────

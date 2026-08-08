@@ -36,7 +36,9 @@ program
     const deps = makeDeps();
     const engine = new Engine(deps);
     await engine.init();
-    engine.start();
+    // Motor default KAPALI — panel toggle'ı (kalıcı) açar.
+    if (engine.isEnabled()) engine.start();
+    else logger.info("engine disabled (panel toggle) — scheduler idle");
     startPanel({ ...deps, engine });
     logger.info({ port: deps.config.panel.port }, "PBD running — panel + engine");
     // Keep the process alive; graceful shutdown on signals.

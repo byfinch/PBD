@@ -1,99 +1,165 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PBD Ops</title>
-  <link rel="stylesheet" href="/style.css" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PBD://OPS</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13' fill='%2300ff41'>▊</text></svg>">
 </head>
 <body>
-  <nav class="topbar">
-    <div class="brand">
-      <div class="brand-title">PBD Ops</div>
-      <div class="brand-sub">ORGANIC SIGNAL AUTOMATION</div>
+
+<!-- ══ login ══ -->
+<div class="login-wrap" id="loginWrap" style="display:none">
+  <div class="t-card login-card">
+    <div class="t-titlebar">
+      <div class="t-dots"><i></i><i></i><i></i></div>
+      <span class="t-title">root@pbd:~/ops$ ./login --auth<span class="cursor">▊</span></span>
     </div>
-    <div class="topbar-nav">
-      <button class="nav-item active" data-view="calendar">Takvim</button>
-      <button class="nav-item" data-view="positions">Pozisyonlar</button>
-      <button class="nav-item" data-view="visits">Ziyaretler</button>
-      <button class="nav-item" data-view="health">Sağlık</button>
+    <div class="t-body">
+      <label class="f-label">kullanıcı</label>
+      <input class="inp" id="loginUser" autocomplete="username" spellcheck="false">
+      <label class="f-label">parola</label>
+      <input class="inp" id="loginPass" type="password" autocomplete="current-password">
+      <button class="btn solid" id="loginBtn">$ ./connect --secure</button>
+      <div class="login-err" id="loginErr"></div>
     </div>
-    <div class="topbar-right">
-      <div class="pill" id="pill-engine">—</div>
-      <div class="pill" id="pill-vault">—</div>
-    </div>
+  </div>
+</div>
+
+<!-- ══ üst bar ══ -->
+<header class="topbar">
+  <div class="brand">PBD://OPS<span class="cursor">▊</span></div>
+  <nav class="nav" id="nav">
+    <button data-view="overview" class="active">Genel Bakış</button>
+    <button data-view="visits">Ziyaretler</button>
+    <button data-view="sites">Siteler</button>
+    <button data-view="profiles">Profiller</button>
+    <button data-view="positions">Pozisyonlar</button>
   </nav>
+  <div class="eng-state">
+    <span class="eng-dot" id="engDot"></span>
+    <span id="engLabel" class="muted">—</span>
+  </div>
+  <button class="logout-btn" id="logoutBtn">ÇIKIŞ</button>
+</header>
 
-  <main class="container">
-    <!-- ═══ TAKVİM ═══ -->
-    <div class="view active" id="view-calendar">
-      <header class="page-header">
-        <h1>Takvim</h1>
-        <p class="subtitle">Rampa günü, günlük kota ve bugünkü ziyaret planı.</p>
-      </header>
-      <section class="panel">
-        <div class="panel-head"><h2>Rampa</h2></div>
-        <div class="panel-body" id="ramp-strip"></div>
-      </section>
-      <section class="panel">
-        <div class="panel-head"><h2>Bugünkü Plan</h2></div>
-        <div class="panel-body">
-          <table class="tbl" id="plan-table">
-            <thead><tr><th>Saat</th><th>Profil</th><th>Keyword</th><th>Hedef</th><th>Durum</th></tr></thead>
-            <tbody></tbody>
-          </table>
+<main class="page">
+
+  <!-- ══ GENEL BAKIŞ ══ -->
+  <section class="view active" id="view-overview">
+    <div class="stat-grid">
+      <div class="stat"><div class="k">motor</div><div class="v" id="stEngine">—</div><div class="sub" id="stEngineSub"></div></div>
+      <div class="stat"><div class="k">rampa günü</div><div class="v dim" id="stRamp">—</div><div class="sub">8 günlük tırmanış</div></div>
+      <div class="stat"><div class="k">bugünkü kota</div><div class="v" id="stQuota">—</div><div class="pbar"><i id="stQuotaBar" style="width:0%"></i></div></div>
+      <div class="stat"><div class="k">ziyaret (bugün)</div><div class="v" id="stVisits">0</div><div class="sub" id="stVisitsSub"></div></div>
+      <div class="stat"><div class="k">solver (bugün)</div><div class="v dim" id="stSolver">0</div><div class="sub" id="stSolverSub"></div></div>
+      <div class="stat"><div class="k">profil</div><div class="v dim" id="stProfiles">—</div><div class="sub" id="stTrust"></div></div>
+    </div>
+
+    <div class="t-card">
+      <div class="t-titlebar">
+        <div class="t-dots"><i></i><i></i><i></i></div>
+        <span class="t-title">root@pbd:~/ops$ tail -f activity.log<span class="cursor">▊</span></span>
+        <div class="t-actions"><button class="btn sm" id="toggleEngine">…</button></div>
+      </div>
+      <div class="t-body"><div class="term-log" id="activityLog"><span class="muted">baglaniyor…</span></div></div>
+    </div>
+
+    <div class="t-card">
+      <div class="t-titlebar">
+        <div class="t-dots"><i></i><i></i><i></i></div>
+        <span class="t-title">root@pbd:~/ops$ cat ramp.plan<span class="cursor">▊</span></span>
+      </div>
+      <div class="t-body"><div class="ramp-strip" id="rampStrip"></div></div>
+    </div>
+
+    <div class="t-card">
+      <div class="t-titlebar">
+        <div class="t-dots"><i></i><i></i><i></i></div>
+        <span class="t-title">root@pbd:~/ops$ cat today.queue<span class="cursor">▊</span></span>
+      </div>
+      <div class="t-body" style="padding:0; overflow-x:auto">
+        <table class="t-table"><thead><tr><th>saat</th><th>profil</th><th>keyword</th><th>hedef</th><th>durum</th></tr></thead>
+        <tbody id="planBody"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ ZİYARETLER ══ -->
+  <section class="view" id="view-visits">
+    <div class="t-card">
+      <div class="t-titlebar">
+        <div class="t-dots"><i></i><i></i><i></i></div>
+        <span class="t-title">root@pbd:~/ops$ SELECT * FROM visits<span class="cursor">▊</span></span>
+        <div class="t-actions">
+          <select class="sel" id="fStatus">
+            <option value="">durum: hepsi</option>
+            <option value="visited">visited</option>
+            <option value="missed">missed</option>
+            <option value="captcha">captcha</option>
+            <option value="error">error</option>
+          </select>
+          <select class="sel" id="fDomain"><option value="">site: hepsi</option></select>
+          <select class="sel" id="fProfile"><option value="">profil: hepsi</option></select>
         </div>
-      </section>
+      </div>
+      <div class="t-body" style="padding:0; overflow-x:auto">
+        <table class="t-table"><thead><tr>
+          <th>id</th><th>zaman</th><th>profil</th><th>site</th><th>keyword</th>
+          <th>poz</th><th>durum</th><th>kalma</th><th>iç tık</th><th>kanıt</th>
+        </tr></thead><tbody id="visitsBody"></tbody></table>
+        <div class="pager" id="visitsPager"></div>
+      </div>
     </div>
+  </section>
 
-    <!-- ═══ POZİSYONLAR ═══ -->
-    <div class="view" id="view-positions">
-      <header class="page-header">
-        <h1>Pozisyonlar</h1>
-        <p class="subtitle">Keyword bazında organik pozisyon trendi.</p>
-      </header>
-      <section class="panel">
-        <div class="panel-body" id="positions-list"></div>
-      </section>
+  <!-- ══ SİTELER ══ -->
+  <section class="view" id="view-sites">
+    <div class="t-card">
+      <div class="t-titlebar">
+        <div class="t-dots"><i></i><i></i><i></i></div>
+        <span class="t-title">root@pbd:~/ops$ ./targets --add<span class="cursor">▊</span></span>
+      </div>
+      <div class="t-body">
+        <label class="f-label">domain</label>
+        <input class="inp" id="siteDomain" placeholder="milanbahis.com" style="width:260px" spellcheck="false">
+        <label class="f-label">keyword'ler (virgülle)</label>
+        <input class="inp" id="siteKeywords" placeholder="milanbahis, milanbahis giriş, milanbahis güncel" style="width:100%" spellcheck="false">
+        <label class="f-label">ağırlık</label>
+        <input class="inp" id="siteWeight" type="number" value="1" min="1" max="10" style="width:80px">
+        <div style="margin-top:14px"><button class="btn solid" id="addSiteBtn">$ ./target --deploy</button></div>
+        <div class="hint">site eklenir eklenmez plana girer; silinen site bir daha config'ten dirilmez</div>
+      </div>
     </div>
+    <div class="site-grid" id="siteGrid"></div>
+  </section>
 
-    <!-- ═══ ZİYARETLER ═══ -->
-    <div class="view" id="view-visits">
-      <header class="page-header">
-        <h1>Ziyaretler</h1>
-        <p class="subtitle">Son ziyaret denemeleri.</p>
-      </header>
-      <section class="panel">
-        <div class="panel-body">
-          <table class="tbl" id="visits-table">
-            <thead><tr><th>Zaman</th><th>Profil</th><th>Keyword</th><th>Site</th><th>Poz.</th><th>Durum</th><th>Dwell</th><th>İç Link</th><th>Hata</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </section>
+  <!-- ══ PROFİLLER ══ -->
+  <section class="view" id="view-profiles">
+    <div class="prof-grid" id="profGrid"></div>
+  </section>
+
+  <!-- ══ POZİSYONLAR ══ -->
+  <section class="view" id="view-positions">
+    <div class="t-card">
+      <div class="t-titlebar">
+        <div class="t-dots"><i></i><i></i><i></i></div>
+        <span class="t-title">root@pbd:~/ops$ ./rank --watch<span class="cursor">▊</span></span>
+        <div class="t-actions"><button class="btn sm cyan" id="trackBtn">$ ./measure --now</button></div>
+      </div>
+      <div class="t-body" style="padding:0; overflow-x:auto">
+        <table class="t-table"><thead><tr>
+          <th>site</th><th>keyword</th><th>cihaz</th><th>son pozisyon</th><th>trend (30 ölçüm)</th><th>ölçüm</th>
+        </tr></thead><tbody id="posBody"></tbody></table>
+      </div>
     </div>
+  </section>
 
-    <!-- ═══ SAĞLIK ═══ -->
-    <div class="view" id="view-health">
-      <header class="page-header">
-        <h1>Sağlık</h1>
-        <p class="subtitle">IP-trust vault — profil başına Google güven durumu.</p>
-      </header>
-      <section class="panel">
-        <div class="panel-head"><h2>Vault Özeti</h2></div>
-        <div class="panel-body" id="vault-summary"></div>
-      </section>
-      <section class="panel">
-        <div class="panel-body">
-          <table class="tbl" id="vault-table">
-            <thead><tr><th>Profil</th><th>Cihaz</th><th>Durum</th><th>Art arda hata</th><th>Çözüm</th><th>Son temiz</th><th>Sonraki deneme</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </section>
-    </div>
-  </main>
+</main>
 
-  <script src="/app.js"></script>
+<div class="lightbox" id="lightbox" style="display:none"><img id="lightboxImg"></div>
+
+<script src="app.js"></script>
 </body>
 </html>

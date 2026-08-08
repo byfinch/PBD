@@ -114,6 +114,8 @@ const ConfigSchema = z.object({
   }),
   panel: z.object({
     port: z.number().int().positive().default(3080),
+    /** Kanıt screenshot'ları bu kadar gün tutulur, sonra otomatik silinir. */
+    evidenceRetentionDays: z.number().int().positive().default(14),
   }),
   output: z.object({
     dir: z.string(),
@@ -214,6 +216,7 @@ export function loadConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     },
     panel: {
       port: Number(process.env.PANEL_PORT ?? file.panel?.port ?? 3080),
+      evidenceRetentionDays: Number(file.panel?.evidenceRetentionDays ?? 14),
     },
     output: {
       dir: process.env.OUTPUT_DIR || "./data",
