@@ -170,6 +170,22 @@ export async function runVisitOnce(deps: EngineDeps, item: PlannedVisit, profile
       logActivity(`[${profile.name}] captcha çözüldü, SERP yenileniyor`);
       // Recovered — reload the keyword SERP for a clean parse.
       await openSerp(page, config, item.keyword).catch(() => {});
+      // Sert duvar varyantı: Google çözümden sonra bile metin-only block
+      // sayfası sunabiliyor (sıcak IP). Bir kez bekle + yeniden dene; hâlâ
+      // duvardaysa profili dinlenmeye al — "SERP markup not recognised"
+      // diye yanlış etiketleme.
+      if (await pageLooksLikeCaptcha(page)) {
+        await sleep(randInt(20_000, 40_000));
+        await openSerp(page, config, item.keyword).catch(() => {});
+        if (await pageLooksLikeCaptcha(page)) {
+          ev.failShot = await snap(page, config, visitId, "fail");
+          store.setVisitEvidence(visitId, ev);
+          store.ipTrust.markSolverFailed(profile.id, "hard re-wall after solve", { maxCooldownMinutes: 60 });
+          logActivity(`[${profile.name}] sert duvar (çözüm sonrası re-wall) — profil 60 dk dinlenmede`);
+          store.finishVisit(visitId, { status: "captcha", error: "hard re-wall after solve" });
+          return;
+        }
+      }
     }
 
     if (!(await pageLooksLikeCaptcha(page))) {
@@ -310,8 +326,9 @@ export async function runVisitOnce(deps: EngineDeps, item: PlannedVisit, profile
       ev.failShot = await snap(session.page, config, visitId, "fail");
       store.setVisitEvidence(visitId, ev);
     }
-    logActivity(`[${profile.name}] HATA: ${String(err).slice(0, 120)}`);
-    store.finishVisit(visitId, { status: "error", error: String(err) });
+    const errMsg = (err instanceof Error ? err.message : String(err)) || "unknown (browser died?)";
+    logActivity(`[${profile.name}] HATA: ${errMsg.slice(0, 120)}`);
+    store.finishVisit(visitId, { status: "error", error: errMsg });
   } finally {
     if (session) await session.detach();
     if (browserStarted) {
