@@ -79,19 +79,20 @@ export function startPanel(deps: PanelDeps): void {
     res.json({ ok: true });
   });
 
+  // Statik arayüz herkese açık (içinde veri yok; asıl veri /api ve /evidence
+  // arkasında korumalı). Auth duvarı onlardan ÖNCE değil, SONRA gelir.
+  const candidates = [resolve(__dirname, "public"), resolve(__dirname, "../../src/web/public")];
+  const publicDir = candidates.find((p) => existsSync(p));
+  if (publicDir) app.use(express.static(publicDir));
+  else logger.warn("panel public dir not found — API only");
+
   // Everything below requires a session.
   app.use((req, res, next) => {
     if (sessions.has(cookieToken(req))) return next();
     res.status(401).json({ error: "auth required" });
   });
 
-  // Panel assets: dist/web/public next to the compiled server, src fallback for tsx dev.
-  const candidates = [resolve(__dirname, "public"), resolve(__dirname, "../../src/web/public")];
-  const publicDir = candidates.find((p) => existsSync(p));
-  if (publicDir) app.use(express.static(publicDir));
-  else logger.warn("panel public dir not found — API only");
-
-  // Evidence screenshots.
+  // Evidence screenshots (auth'lu).
   const evidenceDir = resolve(config.output.dir, "evidence");
   app.use("/evidence", express.static(evidenceDir, { fallthrough: false, maxAge: "1h" }));
 
