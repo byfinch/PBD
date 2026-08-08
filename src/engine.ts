@@ -300,6 +300,12 @@ export async function runVisitOnce(deps: EngineDeps, item: PlannedVisit, profile
     );
   } catch (err) {
     logger.warn({ err: String(err), profile: profile.name }, "visit failed");
+    // Proxy/baglantı arızası profil-bazlıdır — vault'a işle ki planlayıcı bu
+    // profili bir süre atlayıp diğerleriyle devam etsin.
+    if (String(err).includes("PROXY") || String(err).includes("proxy")) {
+      store.ipTrust.markSolverFailed(profile.id, "proxy connection error", { maxCooldownMinutes: 30 });
+      logActivity(`[${profile.name}] proxy arızası — profil 30 dk dinlenmede`);
+    }
     if (session) {
       ev.failShot = await snap(session.page, config, visitId, "fail");
       store.setVisitEvidence(visitId, ev);
