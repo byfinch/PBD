@@ -23,6 +23,8 @@ export interface VisitRow {
   landShot: string;
   failShot: string;
   landedUrl: string;
+  /** Tıklamayı getiren gerçek sorgu (derinleştirme kullanıldıysa orijinal keyword'den farklı). */
+  viaQuery: string;
 }
 
 export interface SiteRow {
@@ -136,7 +138,7 @@ export class Store {
     `);
     // Evidence columns (added after the initial schema — guard for existing DBs).
     const cols = (this.db.prepare(`PRAGMA table_info(visits)`).all() as Array<{ name: string }>).map((c) => c.name);
-    for (const col of ["serp_shot", "land_shot", "fail_shot", "landed_url"]) {
+    for (const col of ["serp_shot", "land_shot", "fail_shot", "landed_url", "via_query"]) {
       if (!cols.includes(col)) this.db.exec(`ALTER TABLE visits ADD COLUMN ${col} TEXT NOT NULL DEFAULT ''`);
     }
   }
@@ -309,11 +311,12 @@ export class Store {
       dwellMs?: number;
       internalClicks?: number;
       error?: string;
+      viaQuery?: string;
     }
   ): void {
     this.db
       .prepare(
-        `UPDATE visits SET status = ?, position = ?, dwell_ms = ?, internal_clicks = ?, error = ?, finished_at = ?
+        `UPDATE visits SET status = ?, position = ?, dwell_ms = ?, internal_clicks = ?, error = ?, via_query = ?, finished_at = ?
          WHERE id = ?`
       )
       .run(
@@ -322,6 +325,7 @@ export class Store {
         outcome.dwellMs ?? 0,
         outcome.internalClicks ?? 0,
         (outcome.error ?? "").slice(0, 500),
+        (outcome.viaQuery ?? "").slice(0, 200),
         new Date().toISOString(),
         visitId
       );
@@ -439,6 +443,7 @@ export class Store {
       landShot: String(r.land_shot ?? ""),
       failShot: String(r.fail_shot ?? ""),
       landedUrl: String(r.landed_url ?? ""),
+      viaQuery: String(r.via_query ?? ""),
     };
   }
 

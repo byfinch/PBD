@@ -7,7 +7,7 @@ import type { AntidetectClient, AntidetectProfile } from "./antidetect/client.js
 import { selectProfiles } from "./antidetect/client.js";
 import { BrowserSession } from "./browser/session.js";
 import { applyMobileEmulation } from "./browser/mobileEmulation.js";
-import { prepareGoogleConsent, openSerp, parseOrganicResults, findTarget, clickOrganicResult } from "./serp/finder.js";
+import { prepareGoogleConsent, openSerp, parseOrganicResults, findTarget, clickOrganicResult, goToNextSerpPage } from "./serp/finder.js";
 import { pageLooksLikeCaptcha, recoverFromSorry } from "./captcha/recovery.js";
 import { SolverPolicy } from "./captcha/policy.js";
 import { behaviorForProfile } from "./util/persona.js";
@@ -37,12 +37,36 @@ export function recentActivity(): ActivityEvent[] {
   return [...activityRing];
 }
 
+/** Panel-managed DB sites win; config.sites is only the bootstrap fallback. */
+export function effectiveSitesList(
+  store: Store,
+  config: AppConfig
+): Array<{ domain: string; keywords: string[]; weight: number }> {
+  const dbSites = store.listSites();
+  if (dbSites.length) return dbSites.map((s) => ({ domain: s.domain, keywords: s.keywords, weight: s.weight }));
+  return config.sites;
+}
+
 // ── evidence snapshots ─────────────────────────────────────────────────────
 
 function evidenceDir(config: AppConfig): string {
   const dir = resolve(config.output.dir, "evidence");
   mkdirSync(dir, { recursive: true });
   return dir;
+}
+
+/** Miss merdiveni: orijinal keyword'e en yakın derinleştirme sorguları. */
+function buildRefinements(keyword: string, domain: string): string[] {
+  const brand = (domain.split(".")[0] ?? domain).trim();
+  const kw = keyword.trim().toLowerCase();
+  const out: string[] = [];
+  const push = (q: string) => {
+    const n = q.trim();
+    if (n && n.toLowerCase() !== kw && !out.includes(n)) out.push(n);
+  };
+  push(kw.includes("giriş") ? `${brand} güncel giriş` : `${brand} giriş`);
+  push(domain);
+  return out;
 }
 
 /** JPEG screenshot, best-effort — evidence must never crash a visit. */
@@ -152,7 +176,7 @@ export async function runVisitOnce(deps: EngineDeps, item: PlannedVisit, profile
       store.ipTrust.markClean(profile.id);
     }
 
-    const parsed = await parseOrganicResults(page);
+    let parsed = await parseOrganicResults(page);
     if (parsed.empty) {
       ev.failShot = await snap(page, config, visitId, "fail");
       store.setVisitEvidence(visitId, ev);
@@ -160,13 +184,57 @@ export async function runVisitOnce(deps: EngineDeps, item: PlannedVisit, profile
       return;
     }
 
-    // SERP kanıtı her durumda (hit ya da miss) — hedefin göründüğü/görünmediği an.
+    // ── derin arama (2-3. sayfa, insan gibi sayfalama) ──────────────────
+    let target = findTarget(parsed.results, item.targetDomain);
+    const deep = config.behavior.deepSearch;
+    let pageNum = 1;
+    while (!target && deep.enabled && pageNum < deep.maxPages) {
+      const prevCount = parsed.results.length;
+      logActivity(`[${profile.name}] ${pageNum}. sayfada yok — ${pageNum + 1}. sayfaya geçiliyor`);
+      const moved = await goToNextSerpPage(page, { isMobile: mobile, navTimeoutMs: config.engine.navTimeoutMs });
+      if (!moved) break;
+      pageNum++;
+      const re = await parseOrganicResults(page);
+      if (re.empty) break;
+      if (re.results.length > prevCount) {
+        parsed = re; // mobil "daha fazla": liste uzadı, pozisyonlar zaten mutlak
+      } else {
+        for (const r of re.results) r.position = (pageNum - 1) * 10 + r.position; // desktop: yeni sayfa ofseti
+        parsed = re;
+      }
+      target = findTarget(parsed.results, item.targetDomain);
+    }
+    if (target && pageNum > 1) {
+      logActivity(`[${profile.name}] derin aramada bulundu — ${pageNum}. sayfa, poz ${target.position}`);
+    }
+
+    // ── sorgu derinleştirme merdiveni (marka↔domain sinyali) ───────────
+    let viaQuery = "";
+    if (!target && config.behavior.refineOnMiss.enabled) {
+      const ladder = buildRefinements(item.keyword, item.targetDomain).slice(0, config.behavior.refineOnMiss.maxRefinements);
+      for (const q of ladder) {
+        if (await pageLooksLikeCaptcha(page)) break; // derinleştirmede solver yakılmaz
+        logActivity(`[${profile.name}] sorgu derinleştiriliyor: "${q}"`);
+        const ok = await openSerp(page, config, q).catch(() => false);
+        if (!ok || (await pageLooksLikeCaptcha(page))) break;
+        const re = await parseOrganicResults(page);
+        if (re.empty) continue;
+        parsed = re;
+        target = findTarget(re.results, item.targetDomain);
+        if (target) {
+          viaQuery = q;
+          logActivity(`[${profile.name}] derinleştirme ile bulundu — "${q}" poz ${target.position}`);
+          break;
+        }
+      }
+    }
+
+    // SERP kanıtı: hedefin bulunduğu sayfa ya da merdivenin son hali.
     ev.serpShot = await snap(page, config, visitId, "serp");
     store.setVisitEvidence(visitId, ev);
 
-    const target = findTarget(parsed.results, item.targetDomain);
     if (!target) {
-      logActivity(`[${profile.name}] hedef SERP'te yok — miss ("${item.keyword}" / ${item.targetDomain})`);
+      logActivity(`[${profile.name}] hedef hiçbir yerde yok — miss ("${item.keyword}" / ${item.targetDomain})`);
       store.finishVisit(visitId, { status: "missed" });
       // The miss still told us the SERP state — keep it as a rank observation.
       store.insertPosition({ date: today, keyword: item.keyword, domain: item.targetDomain, position: null, device: mobile ? "mobile" : "desktop" });
@@ -218,6 +286,7 @@ export async function runVisitOnce(deps: EngineDeps, item: PlannedVisit, profile
       position: target.position,
       dwellMs: visit.dwellMs,
       internalClicks: visit.internalClicks,
+      viaQuery,
     });
     store.insertPosition({
       date: today,
@@ -319,9 +388,7 @@ export class Engine {
 
   /** Sites the engine works on: panel-managed DB rows win, config is fallback. */
   private effectiveSites(): Array<{ domain: string; keywords: string[]; weight: number }> {
-    const dbSites = this.deps.store.listSites();
-    if (dbSites.length) return dbSites.map((s) => ({ domain: s.domain, keywords: s.keywords, weight: s.weight }));
-    return this.deps.config.sites;
+    return effectiveSitesList(this.deps.store, this.deps.config);
   }
 
   private effectiveConfig(): AppConfig {

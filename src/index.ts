@@ -3,7 +3,7 @@ import { Command } from "commander";
 import { loadConfig } from "./config.js";
 import { Store } from "./store/db.js";
 import { createAntidetectClient, selectProfiles } from "./antidetect/client.js";
-import { Engine, runVisitOnce, type EngineDeps } from "./engine.js";
+import { Engine, runVisitOnce, effectiveSitesList, type EngineDeps } from "./engine.js";
 import { startPanel } from "./web/server.js";
 import { measureAllPositions } from "./rank/tracker.js";
 import { dateKey, rampStartDate, todaysPlan } from "./calendar/ramp.js";
@@ -107,7 +107,7 @@ program
       logger.error("no antidetect profiles available for tracking");
       process.exit(1);
     }
-    const results = await measureAllPositions(deps.config, deps.store, deps.antidetect, profile);
+    const results = await measureAllPositions(deps.config, deps.store, deps.antidetect, profile, effectiveSitesList(deps.store, deps.config));
     for (const r of results) {
       logger.info({ keyword: r.keyword, domain: r.domain, position: r.position }, "position");
     }

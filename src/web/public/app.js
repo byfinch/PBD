@@ -222,6 +222,7 @@ function toggleEvidence(tr, v) {
   const shots = shot(v.serpShot, 'SERP') + shot(v.landShot, 'VARIŞ') + shot(v.failShot, 'HATA ANI');
   evTr.innerHTML = `<td colspan="10">
     <div class="ev-box">${shots || '<span class="ev-empty"># bu ziyarete ait kanıt görüntüsü yok (retention süresi dolmuş olabilir)</span>'}</div>
+    ${v.viaQuery ? `<div class="ev-meta"><b>tıklamayı getiren sorgu:</b> ${esc(v.viaQuery)} <span class="chip purple">DERİNLEŞTİRME</span></div>` : ''}
     ${v.landedUrl ? `<div class="ev-meta"><b>varış url:</b> ${esc(v.landedUrl)}</div>` : ''}
     ${v.error ? `<div class="err-band">${esc(v.error)}</div>` : ''}
     <div class="ev-meta"><b>başlangıç:</b> ${fmtDateTime(v.startedAt)} · <b>bitiş:</b> ${fmtDateTime(v.finishedAt)}</div>

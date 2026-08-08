@@ -101,6 +101,20 @@ const ConfigSchema = z.object({
       .default({}),
     /** "close" = end on the target page; "internal" = leave via an internal link. */
     exitMode: z.enum(["close", "internal"]).default("close"),
+    /** Hedef 1. sayfada yoksa insan gibi sayfalama ile derine bak. */
+    deepSearch: z
+      .object({
+        enabled: z.boolean().default(true),
+        maxPages: z.number().int().min(1).max(5).default(3),
+      })
+      .default({}),
+    /** Derin aramada da yoksa: aynı oturumda sorguyu derinleştir (marka↔domain sinyali). */
+    refineOnMiss: z
+      .object({
+        enabled: z.boolean().default(true),
+        maxRefinements: z.number().int().min(1).max(3).default(2),
+      })
+      .default({}),
   }),
   solver: z.object({
     enabled: z.boolean().default(false),
@@ -204,6 +218,14 @@ export function loadConfig(overrides: Partial<AppConfig> = {}): AppConfig {
         maxStayMs: file.behavior?.rivalCompare?.maxStayMs ?? 20_000,
       },
       exitMode: file.behavior?.exitMode ?? "close",
+      deepSearch: {
+        enabled: file.behavior?.deepSearch?.enabled ?? true,
+        maxPages: file.behavior?.deepSearch?.maxPages ?? 3,
+      },
+      refineOnMiss: {
+        enabled: file.behavior?.refineOnMiss?.enabled ?? true,
+        maxRefinements: file.behavior?.refineOnMiss?.maxRefinements ?? 2,
+      },
     },
     solver: {
       enabled: file.solver?.enabled ?? false,

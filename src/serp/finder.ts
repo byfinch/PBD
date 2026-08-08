@@ -228,3 +228,49 @@ export async function openSerp(page: Page, config: AppConfig, keyword: string): 
   await sleep(800 + Math.random() * 1200);
   return found;
 }
+
+/**
+ * Human-like SERP pagination: scroll to the bottom, then click the "next"
+ * (desktop: a#pnnext) or "more results" (mobile append) control. Returns true
+ * when the SERP grew/moved — the caller re-parses. A false return means there
+ * is no next page (end of results).
+ */
+export async function goToNextSerpPage(
+  page: Page,
+  opts: { isMobile?: boolean; navTimeoutMs?: number } = {}
+): Promise<boolean> {
+  try {
+    // Okur gibi: önce yarıya, sonra dibe kaydır.
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight * 0.7)).catch(() => {});
+    await sleep(700 + Math.random() * 900);
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)).catch(() => {});
+    await sleep(900 + Math.random() * 1200);
+
+    const before = page.url();
+    let btn = page.locator("a#pnnext").first();
+    if ((await btn.count()) === 0) {
+      btn = page
+        .locator(
+          'a:has-text("Sonraki"), a:has-text("Next"), a:has-text("Daha fazla sonuç"), a:has-text("More results"), [role="button"]:has-text("Daha fazla")'
+        )
+        .first();
+    }
+    if ((await btn.count()) === 0) return false;
+
+    await btn.scrollIntoViewIfNeeded({ timeout: 5_000 }).catch(() => {});
+    await sleep(400 + Math.random() * 700);
+    const navP = page
+      .waitForNavigation({ waitUntil: "domcontentloaded", timeout: opts.navTimeoutMs ?? 30_000 })
+      .catch(() => null);
+    await btn.click({ timeout: 5_000 }).catch(() => {});
+    await navP;
+    await page.waitForLoadState("domcontentloaded", { timeout: 15_000 }).catch(() => {});
+    await sleep(800 + Math.random() * 1200);
+    if (page.url() !== before) return true; // desktop: yeni sayfa
+    // mobil "daha fazla sonuç": navigasyon yok, liste uzar
+    await page.waitForSelector("#rso", { timeout: 8_000 }).catch(() => {});
+    return true;
+  } catch {
+    return false;
+  }
+}

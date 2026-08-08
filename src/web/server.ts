@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import express from "express";
 import type { AppConfig } from "../config.js";
 import type { Store } from "../store/db.js";
-import { Engine, recentActivity } from "../engine.js";
+import { Engine, recentActivity, effectiveSitesList } from "../engine.js";
 import { quotaForDay, dayIndexFor } from "../calendar/ramp.js";
 import { measureAllPositions } from "../rank/tracker.js";
 import { logger } from "../logger.js";
@@ -200,7 +200,7 @@ export function startPanel(deps: PanelDeps): void {
       const all = await antidetect.listProfiles().catch(() => []);
       const profile = all[0];
       if (!profile) return;
-      const results = await measureAllPositions(config, store, antidetect, profile).catch((err) => {
+      const results = await measureAllPositions(config, store, antidetect, profile, effectiveSitesList(store, config)).catch((err) => {
         logger.warn({ err: String(err) }, "track pass failed");
         return [];
       });
