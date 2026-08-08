@@ -205,11 +205,14 @@ export class MultiloginDriver implements AntidetectClient {
     const host = process.env.MULTILOGIN_PROXY_HOST ?? "";
     const port = Number(process.env.MULTILOGIN_PROXY_PORT ?? 0);
     const password = process.env.MULTILOGIN_PROXY_PASSWORD ?? "";
+    const rawType = (process.env.MULTILOGIN_PROXY_TYPE ?? "HTTP").toUpperCase();
+    const type = (["HTTP", "HTTPS", "SOCKS4", "SOCKS5"].includes(rawType) ? rawType : "HTTP") as
+      | "HTTP" | "HTTPS" | "SOCKS4" | "SOCKS5";
     return (file.profiles ?? []).map((p) => {
       if (file.folderId) this.folderByProfile.set(p.id, file.folderId);
       const proxy: AntidetectProfile["proxy"] =
         host && port
-          ? { host, port, user: p.proxyLogin || undefined, password: password || undefined, type: "SOCKS5" }
+          ? { host, port, user: p.proxyLogin || undefined, password: password || undefined, type }
           : undefined;
       return { id: p.id, name: p.name, proxy };
     });

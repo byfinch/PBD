@@ -104,7 +104,9 @@ export async function parseOrganicResults(page: Page): Promise<SerpParseResult> 
       let organicIndex = 0;
       for (const a of anchors) {
         // Must wrap a heading — that is the organic result title link.
-        if (!a.querySelector("h3")) continue;
+        // Desktop uses <h3>; the mobile SERP uses role="heading"/aria-level divs.
+        const headingEl = a.querySelector('h3, [role="heading"], [aria-level="3"]');
+        if (!headingEl) continue;
         const href = a.href;
         if (!href || href.includes("google.")) {
           // Skip google-internal links (cached/translated variants).
@@ -113,7 +115,7 @@ export async function parseOrganicResults(page: Page): Promise<SerpParseResult> 
         if (href.includes("/aclk") || href.includes("/url?")) continue;
         // Ad containers — never counted as organic.
         if (a.closest("[data-text-ad], #tads, #tadsb, #tvcap, [data-pcu]")) continue;
-        const title = a.querySelector("h3")?.textContent?.trim() ?? "";
+        const title = headingEl.textContent?.trim() ?? "";
         out.push({ url: href, title, anchorIndex: organicIndex });
         organicIndex += 1;
       }
@@ -170,16 +172,38 @@ export async function clickOrganicResult(
 ): Promise<Page | null> {
   const navTimeout = opts.navTimeoutMs ?? 45_000;
   try {
-    const anchors = page.locator('#rso a[href^="http"]:has(h3)');
-    const anchor = anchors.nth(result.anchorIndex);
-    if ((await anchor.count()) === 0) {
-      logger.warn({ anchorIndex: result.anchorIndex }, "organic anchor no longer in DOM");
+    // Index yerine URL ile bul: parse'daki filtre seti ile locator seti birebir
+    // ayni olmak zorunda degil; href eslesmesi her zaman dogru anchor'u verir.
+    const handles = await page.$$('#rso a[href^="http"]');
+    let handle = null;
+    const wanted = result.url;
+    for (const h of handles) {
+      const href = await h.getAttribute("href");
+      if (!href) continue;
+      if (href === wanted || href.split("#")[0] === wanted.split("#")[0]) {
+        handle = h;
+        break;
+      }
+    }
+    if (!handle) {
+      // Gevşek fallback: ayni origin+path
+      const base = wanted.split("?")[0] ?? wanted;
+      for (const h of handles) {
+        const href = (await h.getAttribute("href")) ?? "";
+        if (base && href.split("?")[0] === base) {
+          handle = h;
+          break;
+        }
+      }
+    }
+    if (!handle) {
+      logger.warn({ url: result.url }, "organic anchor not found by href");
       return null;
     }
-    await anchor.scrollIntoViewIfNeeded({ timeout: 8_000 }).catch(() => {});
+    await handle.scrollIntoViewIfNeeded({ timeout: 8_000 }).catch(() => {});
     await sleep(400 + Math.random() * 900);
 
-    const box = await anchor.boundingBox();
+    const box = await handle.boundingBox();
     if (!box) {
       logger.warn("organic anchor has no bounding box");
       return null;
