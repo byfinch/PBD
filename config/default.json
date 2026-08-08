@@ -17,7 +17,9 @@
   "sites": [
     {
       "domain": "example.com",
-      "keywords": ["example keyword"],
+      "keywords": [
+        "example keyword"
+      ],
       "weight": 1
     }
   ],
@@ -41,13 +43,20 @@
     "navTimeoutMs": 45000
   },
   "profiles": {
-    "prefixes": ["PBD-"],
+    "prefixes": [
+      "PBD-"
+    ],
     "ids": []
   },
   "behavior": {
     "dwellMinMs": 25000,
     "dwellMaxMs": 70000,
-    "scrollWaypoints": [0.25, 0.5, 0.75, 1.0],
+    "scrollWaypoints": [
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ],
     "scrollReachChance": 0.75,
     "mouseMoveChance": 0.6,
     "internalLinks": {
@@ -77,5 +86,23 @@
   },
   "output": {
     "dir": "./data"
+  },
+  "warmup": {
+    "enabled": true,
+    "perProfilePerDay": 2,
+    "queries": [
+      "hava durumu istanbul",
+      "son dakika haberler",
+      "dolar kuru bugün",
+      "süper lig puan durumu",
+      "yemek tarifleri",
+      "teknoloji haberleri",
+      "euro kuru",
+      "spor haberleri",
+      "altın fiyatları",
+      "hava durumu ankara",
+      "film önerileri",
+      "borsa istanbul"
+    ]
   }
 }

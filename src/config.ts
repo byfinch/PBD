@@ -116,6 +116,25 @@ const ConfigSchema = z.object({
       })
       .default({}),
   }),
+  warmup: z.object({
+    /** Hedef ziyaretlerden önce profil başına günlük nötr (ısınma) arama sayısı. */
+    enabled: z.boolean().default(true),
+    perProfilePerDay: z.number().int().nonnegative().default(2),
+    queries: z.array(z.string()).min(1).default([
+      "hava durumu istanbul",
+      "son dakika haberler",
+      "dolar kuru bugün",
+      "süper lig puan durumu",
+      "yemek tarifleri",
+      "teknoloji haberleri",
+      "euro kuru",
+      "spor haberleri",
+      "altın fiyatları",
+      "hava durumu ankara",
+      "film önerileri",
+      "borsa istanbul",
+    ]),
+  }),
   solver: z.object({
     enabled: z.boolean().default(false),
     provider: z.enum(["2captcha", "capsolver", "auto"]).default("auto"),
@@ -226,6 +245,11 @@ export function loadConfig(overrides: Partial<AppConfig> = {}): AppConfig {
         enabled: file.behavior?.refineOnMiss?.enabled ?? true,
         maxRefinements: file.behavior?.refineOnMiss?.maxRefinements ?? 2,
       },
+    },
+    warmup: {
+      enabled: file.warmup?.enabled ?? true,
+      perProfilePerDay: file.warmup?.perProfilePerDay ?? 2,
+      queries: Array.isArray(file.warmup?.queries) && file.warmup.queries.length ? file.warmup.queries : undefined,
     },
     solver: {
       enabled: file.solver?.enabled ?? false,

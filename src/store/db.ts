@@ -339,6 +339,14 @@ export class Store {
     return row.n;
   }
 
+  /** Warm-up visits done today for a profile. */
+  countWarmupsToday(profileId: string, date: string): number {
+    const row = this.db
+      .prepare(`SELECT COUNT(*) AS n FROM visits WHERE profile_id = ? AND date = ? AND site_domain = '(isinma)' AND status != 'skipped'`)
+      .get(profileId, date) as { n: number };
+    return row.n;
+  }
+
   /** Total visits attempted today across all profiles. */
   countVisitsForDate(date: string): number {
     const row = this.db

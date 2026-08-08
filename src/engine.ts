@@ -12,6 +12,7 @@ import { pageLooksLikeCaptcha, recoverFromSorry } from "./captcha/recovery.js";
 import { SolverPolicy } from "./captcha/policy.js";
 import { behaviorForProfile } from "./util/persona.js";
 import { runSiteVisit, rivalCompareStep } from "./behavior/siteVisit.js";
+import { runWarmupVisit } from "./behavior/warmup.js";
 import { dateKey, rampStartDate, todaysPlan, quotaForDay, dayIndexFor, type PlannedVisit } from "./calendar/ramp.js";
 import { isInCooldown } from "./store/ipTrust.js";
 import { logger } from "./logger.js";
@@ -579,6 +580,23 @@ export class Engine {
       const trust = store.ipTrust.get(profile.id);
       if (trust && isInCooldown(trust)) {
         this.doneKeys.add(key);
+        continue;
+      }
+
+      // Isınma kapısı: günlük nötr kota dolmadan hedef ziyaret yok.
+      // Plan maddesi done İŞARETLENMEZ — ısınma bitince sıradaki tick'te alınır.
+      if (config.warmup.enabled && store.countWarmupsToday(profile.id, today) < config.warmup.perProfilePerDay) {
+        const wkey = `warmup|${profile.id}|${today}`;
+        if (!this.inFlight.has(wkey)) {
+          this.inFlight.add(wkey);
+          this.active += 1;
+          void runWarmupVisit(this.deps, profile, isMobileProfile(profile))
+            .catch((err) => logger.warn({ err: String(err) }, "warmup task crashed"))
+            .finally(() => {
+              this.inFlight.delete(wkey);
+              this.active -= 1;
+            });
+        }
         continue;
       }
 
