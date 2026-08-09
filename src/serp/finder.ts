@@ -220,8 +220,27 @@ export async function clickOrganicResult(
       await page.mouse.click(x, y);
     }
     const nav = await navPromise;
-    // google.com/amp/s/... = AMP viewer — hâlâ Google, "landi" sayilmaz.
-    const stillGoogle = (u: string) => /google\.[^/]+\/(search|amp\/s)/i.test(u);
+    // Yeniden yönlendirme bildirimi (google.com/url?q=...): insan gibi
+    // sayfadaki hedef bağlantıya tıkla.
+    if (/google\.[^/]+\/url\?/i.test(page.url())) {
+      const links = await page.$$('a[href^="http"]');
+      for (const h of links) {
+        const href = (await h.getAttribute("href")) ?? "";
+        if (!href) continue;
+        try {
+          if (/google\./i.test(new URL(href).hostname)) continue;
+        } catch {
+          continue;
+        }
+        const nav2 = page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: navTimeout }).catch(() => null);
+        await h.click().catch(() => {});
+        await nav2;
+        await page.waitForLoadState("domcontentloaded", { timeout: 10_000 }).catch(() => {});
+        break;
+      }
+    }
+    // google.com/amp/s/... = AMP viewer; /url? bildiriminden çıkamadıysak da — "landi" sayilmaz.
+    const stillGoogle = (u: string) => /google\.[^/]+\/(search|amp\/s|url\?)/i.test(u);
     if (stillGoogle(page.url())) {
       logger.warn({ url: result.url, landed: page.url() }, "click did not leave Google (SERP or AMP viewer)");
       return null;
