@@ -4,6 +4,7 @@ import type { AntidetectClient, AntidetectProfile } from "../antidetect/client.j
 import { BrowserSession } from "../browser/session.js";
 import { applyMobileEmulation } from "../browser/mobileEmulation.js";
 import { prepareGoogleConsent, openSerp, parseOrganicResults, clickOrganicResult } from "../serp/finder.js";
+import { sessionTrendWarmup } from "../serp/trendWarmup.js";
 import { pageLooksLikeCaptcha, recoverFromSorry } from "../captcha/recovery.js";
 import { SolverPolicy } from "../captcha/policy.js";
 import { behaviorForProfile } from "../util/persona.js";
@@ -55,6 +56,9 @@ export async function runWarmupVisit(deps: EngineDeps, profile: AntidetectProfil
 
     if (mobile) await applyMobileEmulation(page);
     await prepareGoogleConsent(session);
+
+    // Aynı oturumda trend ısınması önce (Detect kalıbı).
+    await sessionTrendWarmup(page, config, { isMobile: mobile });
 
     const serpReady = await openSerp(page, config, query).catch(() => false);
     if (!serpReady || (await pageLooksLikeCaptcha(page))) {

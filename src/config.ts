@@ -67,6 +67,8 @@ const ConfigSchema = z.object({
     navTimeoutMs: z.number().int().positive().default(45_000),
     /** Profil bazlı duvar oranı (48s) bunu aşarsa o profil yalnız ısınır. */
     maxWallRatePct: z.number().min(1).max(100).default(40),
+    /** Bir ziyaret bu süreyi aşarsa tarayıcı zorla kapatılır (takılma sigortası). */
+    visitWatchdogMs: z.number().int().positive().default(600_000),
   }),
   profiles: z.object({
     /** Only antidetect profiles whose name starts with one of these prefixes are used. */
@@ -213,6 +215,7 @@ export function loadConfig(overrides: Partial<AppConfig> = {}): AppConfig {
       visitJitterMaxMs: file.engine?.visitJitterMaxMs ?? 90_000,
       navTimeoutMs: file.engine?.navTimeoutMs ?? 45_000,
       maxWallRatePct: file.engine?.maxWallRatePct ?? 40,
+      visitWatchdogMs: file.engine?.visitWatchdogMs ?? 600_000,
     },
     profiles: {
       prefixes: Array.isArray(file.profiles?.prefixes) ? file.profiles.prefixes : [],

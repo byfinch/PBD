@@ -13,6 +13,7 @@ import { SolverPolicy } from "./captcha/policy.js";
 import { behaviorForProfile } from "./util/persona.js";
 import { runSiteVisit, rivalCompareStep } from "./behavior/siteVisit.js";
 import { runWarmupVisit } from "./behavior/warmup.js";
+import { sessionTrendWarmup } from "./serp/trendWarmup.js";
 import { dateKey, rampStartDate, todaysPlan, quotaForDay, dayIndexFor, type PlannedVisit } from "./calendar/ramp.js";
 import { isInCooldown } from "./store/ipTrust.js";
 import { logger } from "./logger.js";
@@ -152,6 +153,11 @@ export async function runVisitOnce(deps: EngineDeps, item: PlannedVisit, profile
 
     if (mobile) await applyMobileEmulation(page);
     await prepareGoogleConsent(session);
+
+    // Detect kalıbı: marka araması asla soğuk gitmez — önce aynı oturumda
+    // canlı trend + doğal davranış.
+    const warm = await sessionTrendWarmup(page, config, { isMobile: mobile });
+    if (warm.ok) logActivity(`[${profile.name}] trend ısınması: "${warm.trend}" (${warm.method})`);
 
     const serpReady = await openSerp(page, config, item.keyword).catch((err) => {
       logger.warn({ err: String(err) }, "SERP navigation failed");
@@ -340,6 +346,29 @@ export async function runVisitOnce(deps: EngineDeps, item: PlannedVisit, profile
   }
 }
 
+
+/**
+ * Takılma sigortası: ziyaret visitWatchdogMs'i aşarsa tarayıcı zorla kapatılır.
+ * Asılı kalan visit gövdesi sonraki çağrılarında hata alıp kendi finally'siyle
+ * temizlenir; stopBrowser iki kez çağrılabilir (ikincisi zararsız).
+ */
+async function withVisitWatchdog(deps: EngineDeps, profile: AntidetectProfile, task: Promise<void>): Promise<void> {
+  const ms = deps.config.engine.visitWatchdogMs;
+  let timer: NodeJS.Timeout | null = null;
+  const killer = new Promise<void>((resolve) => {
+    timer = setTimeout(() => {
+      logActivity(`[${profile.name}] WATCHDOG: ziyaret ${Math.round(ms / 60000)} dk aşıldı — tarayıcı zorla kapatılıyor`);
+      void deps.antidetect.stopBrowser(profile.id).catch(() => {});
+      resolve();
+    }, ms);
+  });
+  try {
+    await Promise.race([task, killer]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export class Engine {
   private timer: NodeJS.Timeout | null = null;
   private cleanupTimer: NodeJS.Timeout | null = null;
@@ -459,13 +488,13 @@ export class Engine {
       this.active += 1;
       scheduled++;
       logActivity(`>> manuel tetik: ${domain} / "${kw}" → ${profile.name}`);
-      void runVisitOnce(this.deps, {
+      void withVisitWatchdog(this.deps, profile, runVisitOnce(this.deps, {
         profileId: profile.id,
         profileName: profile.name,
         keyword: kw,
         targetDomain: domain,
         scheduledHour: new Date().getHours(),
-      }, profile)
+      }, profile))
         .catch((err) => logger.warn({ err: String(err) }, "manual visit crashed"))
         .finally(() => {
           this.inFlight.delete(key);
@@ -638,7 +667,7 @@ export class Engine {
 
       this.inFlight.add(key);
       this.active += 1;
-      void runVisitOnce(this.deps, item, profile)
+      void withVisitWatchdog(this.deps, profile, runVisitOnce(this.deps, item, profile))
         .catch((err) => logger.warn({ err: String(err) }, "visit task crashed"))
         .finally(() => {
           this.inFlight.delete(key);

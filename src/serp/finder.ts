@@ -220,8 +220,13 @@ export async function clickOrganicResult(
       await page.mouse.click(x, y);
     }
     const nav = await navPromise;
+    // google.com/amp/s/... = AMP viewer — hâlâ Google, "landi" sayilmaz.
+    const stillGoogle = (u: string) => /google\.[^/]+\/(search|amp\/s)/i.test(u);
+    if (stillGoogle(page.url())) {
+      logger.warn({ url: result.url, landed: page.url() }, "click did not leave Google (SERP or AMP viewer)");
+      return null;
+    }
     if (!nav && !page.url().startsWith(result.url.split("?")[0] ?? result.url)) {
-      // Some results navigate via JS without a full load event — accept if URL changed off Google.
       if (/google\.[^/]+\/search/i.test(page.url())) {
         logger.warn({ url: result.url }, "click did not leave the SERP");
         return null;

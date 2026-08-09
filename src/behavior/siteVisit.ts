@@ -76,7 +76,7 @@ async function mouseWander(page: Page, chance: number): Promise<void> {
 /** Collect same-domain anchors worth following (visible, http, not a hash link). */
 async function pickInternalLink(page: Page, targetDomain: string): Promise<number> {
   return page
-    .evaluate(() => {
+    .evaluate((target) => {
       const anchors = Array.from(document.querySelectorAll<HTMLAnchorElement>("a[href]"));
       const current = location.href.split("#")[0];
       let eligible = 0;
@@ -86,6 +86,15 @@ async function pickInternalLink(page: Page, targetDomain: string): Promise<numbe
         const href = a.href;
         if (!href || !/^https?:/i.test(href)) return;
         if (href.split("#")[0] === current) return;
+        // SADECE ayni domain: giden CTA'lar (ornegin "Guncel Girise Git"
+        // -> baska domain) site-ici gezinti degildir, disari atmaz.
+        try {
+          const h = new URL(href).hostname.replace(/^www\./, "");
+          const t = target.replace(/^www\./, "");
+          if (h !== t && !h.endsWith("." + t)) return;
+        } catch {
+          return;
+        }
         const rect = a.getBoundingClientRect();
         if (rect.width < 8 || rect.height < 8) return;
         candidates.push(idx);
@@ -98,7 +107,7 @@ async function pickInternalLink(page: Page, targetDomain: string): Promise<numbe
         anchors[pick]!.setAttribute("data-pbd-internal", "1");
       }
       return eligible;
-    })
+    }, targetDomain)
     .catch(() => 0);
 }
 
