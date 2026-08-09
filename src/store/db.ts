@@ -339,6 +339,38 @@ export class Store {
     return row.n;
   }
 
+  /**
+   * Duvar oranı (son 48s): captcha ile biten / toplam gercek deneme.
+   * Isınma + hedef ayrımı yapılmaz — duvar IP'nin genel sıcaklığını ölçer.
+   */
+  wallRate48h(profileId: string): { rate: number; walls: number; total: number } {
+    const row = this.db
+      .prepare(
+        `SELECT
+           SUM(CASE WHEN status = 'captcha' THEN 1 ELSE 0 END) AS walls,
+           COUNT(*) AS total
+         FROM visits
+         WHERE profile_id = ? AND started_at > datetime('now','-2 days') AND status != 'skipped'`
+      )
+      .get(profileId) as { walls: number | null; total: number };
+    const walls = Number(row.walls ?? 0);
+    const total = Number(row.total ?? 0);
+    return { rate: total ? walls / total : 0, walls, total };
+  }
+
+  /** Tum profillerin 48s duvar orani (panel kartı). */
+  globalWallRate48h(): { rate: number; walls: number; total: number } {
+    const row = this.db
+      .prepare(
+        `SELECT SUM(CASE WHEN status = 'captcha' THEN 1 ELSE 0 END) AS walls, COUNT(*) AS total
+         FROM visits WHERE started_at > datetime('now','-2 days') AND status != 'skipped' AND site_domain != '(isinma)'`
+      )
+      .get() as { walls: number | null; total: number };
+    const walls = Number(row.walls ?? 0);
+    const total = Number(row.total ?? 0);
+    return { rate: total ? walls / total : 0, walls, total };
+  }
+
   /** Warm-up visits done today for a profile. */
   countWarmupsToday(profileId: string, date: string): number {
     const row = this.db

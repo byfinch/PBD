@@ -102,6 +102,12 @@ async function loadOverview() {
     $('#stQuotaBar').style.width = (e.todayQuota ? Math.min(100, (e.visitsToday / e.todayQuota) * 100) : 0) + '%';
     $('#stVisits').textContent = e.visitsToday;
     $('#stVisitsSub').textContent = `plan ${e.completed}/${e.planned} tamam`;
+    const wr = ov.wallRate ?? { rate: 0, walls: 0, total: 0 };
+    const wpct = Math.round(wr.rate * 100);
+    const wallEl = $('#stWall');
+    wallEl.textContent = '%' + wpct;
+    wallEl.style.color = wpct <= 40 ? 'var(--ok)' : wpct <= 70 ? 'var(--warn)' : 'var(--fail)';
+    $('#stWallSub').textContent = `${wr.walls}/${wr.total} duvar · eşik %40`;
     $('#stSolver').textContent = ov.solver.today;
     $('#stSolverSub').textContent = `toplam ${ov.solver.total} · ${ov.solver.cleared} çözüldü`;
     $('#stProfiles').textContent = e.profiles;

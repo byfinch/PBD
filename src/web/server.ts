@@ -102,6 +102,7 @@ export function startPanel(deps: PanelDeps): void {
       engine: engine.status(),
       vault: store.ipTrust.summary(),
       solver: store.solverStats(),
+      wallRate: store.globalWallRate48h(),
       activity: recentActivity().slice(-40),
     });
   });

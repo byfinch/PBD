@@ -538,6 +538,32 @@ export class Engine {
     }
   }
 
+  private lastTrackDay = "";
+
+  /** Motor açıkken günde 2 otomatik ölçüm turu (09-10 ve 18-19 dilimleri). */
+  private async maybeAutoTrack(): Promise<void> {
+    const { config, store } = this.deps;
+    const hour = new Date().getHours();
+    if (hour !== 9 && hour !== 18) return;
+    const slot = `${dateKey()}|${hour}`;
+    if (this.lastTrackDay === slot) return;
+    if (this.active > 0) return; // uçuş varken ölçüm yapma
+    const profile = this.profiles.find((p) => {
+      const trust = store.ipTrust.get(p.id);
+      return !(trust && isInCooldown(trust));
+    });
+    if (!profile) return;
+    this.lastTrackDay = slot;
+    logActivity(`>> otomatik pozisyon ölçümü başladı (${profile.name})`);
+    try {
+      const { measureAllPositions } = await import("./rank/tracker.js");
+      const results = await measureAllPositions(config, store, this.deps.antidetect, profile, this.effectiveSites());
+      logActivity(`>> ölçüm turu bitti — ${results.length} keyword`);
+    } catch (err) {
+      logger.warn({ err: String(err) }, "auto track failed");
+    }
+  }
+
   private async tick(): Promise<void> {
     const { config, store } = this.deps;
     const today = dateKey();
@@ -583,6 +609,16 @@ export class Engine {
         continue;
       }
 
+      // Adaptif tempo: son 48s duvar oranı eşiği aşan profil hedef koşmaz —
+      // yalnız ısınır. Temiz profiller tam gaz devam eder.
+      {
+        const wall = store.wallRate48h(profile.id);
+        if (wall.total >= 3 && wall.rate * 100 > config.engine.maxWallRatePct) {
+          this.doneKeys.add(key);
+          continue;
+        }
+      }
+
       // Isınma kapısı: günlük nötr kota dolmadan hedef ziyaret yok.
       // Plan maddesi done İŞARETLENMEZ — ısınma bitince sıradaki tick'te alınır.
       if (config.warmup.enabled && store.countWarmupsToday(profile.id, today) < config.warmup.perProfilePerDay) {
@@ -610,5 +646,7 @@ export class Engine {
           this.active -= 1;
         });
     }
+
+    await this.maybeAutoTrack();
   }
 }

@@ -25,11 +25,11 @@
   ],
   "ramp": {
     "startDate": "",
-    "dayOneVisits": 20,
-    "plateauVisits": 100,
-    "rampDays": 8,
-    "perIpDailyCap": 10,
-    "perProfileDailyCap": 10,
+    "dayOneVisits": 30,
+    "plateauVisits": 120,
+    "rampDays": 5,
+    "perIpDailyCap": 15,
+    "perProfileDailyCap": 15,
     "peakStartHour": 8,
     "peakEndHour": 25,
     "quietStartHour": 3,
@@ -89,7 +89,7 @@
   },
   "warmup": {
     "enabled": true,
-    "perProfilePerDay": 2,
+    "perProfilePerDay": 3,
     "queries": [
       "hava durumu istanbul",
       "son dakika haberler",
@@ -102,7 +102,25 @@
       "altın fiyatları",
       "hava durumu ankara",
       "film önerileri",
-      "borsa istanbul"
+      "borsa istanbul",
+      "hava durumu izmir",
+      "namaz vakitleri istanbul",
+      "instagram",
+      "youtube",
+      "ekşi sözlük",
+      "diziler 2026",
+      "konser biletleri",
+      "uçak bileti fiyatları",
+      "istanbul trafik",
+      "e devlet giriş",
+      "trendyol",
+      "hepsiburada",
+      "netflix dizileri",
+      "spotify",
+      "güncel döviz",
+      "kredi faiz oranları",
+      "iş ilanları istanbul",
+      "sağlık haberleri"
     ]
   }
 }
