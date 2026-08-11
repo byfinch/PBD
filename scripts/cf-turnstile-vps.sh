@@ -21,8 +21,20 @@ curl -sk --max-time 15 "$L/api/v1/profile/stop/p/$P" -H "Authorization: Bearer $
 sleep 3
 
 echo "== plain start (automation parametresi YOK)"
-RESP=$(curl -sk --max-time 120 "$L/api/v2/profile/f/$F/p/$P/start" -H "Authorization: Bearer $TOKEN")
-echo "$RESP" | head -c 200; echo ""
+PORT=""
+for i in $(seq 1 50); do
+  RESP=$(curl -sk --max-time 90 "$L/api/v2/profile/f/$F/p/$P/start" -H "Authorization: Bearer $TOKEN")
+  if echo "$RESP" | grep -q '"port"'; then
+    echo "profil acildi: $(echo "$RESP" | head -c 160)"
+    break
+  fi
+  CODE=$(echo "$RESP" | grep -o '"error_code":"[^"]*"' | head -1 | cut -d'"' -f4)
+  echo "[$i] ${CODE:-?}"
+  case "$CODE" in
+    *CORE_DOWNLOADING*) sleep 20 ;;
+    *) echo "beklenmedik hata"; echo "$RESP" | head -c 200; exit 1 ;;
+  esac
+done
 
 echo "== pencere bekleniyor"
 WID=""
