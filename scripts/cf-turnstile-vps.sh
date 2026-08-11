@@ -24,7 +24,7 @@ echo "== plain start (automation parametresi YOK)"
 PORT=""
 for i in $(seq 1 50); do
   RESP=$(curl -sk --max-time 90 "$L/api/v2/profile/f/$F/p/$P/start" -H "Authorization: Bearer $TOKEN")
-  if echo "$RESP" | grep -q '"port"'; then
+  if echo "$RESP" | grep -qE '"port"|started successfully'; then
     echo "profil acildi: $(echo "$RESP" | head -c 160)"
     break
   fi
