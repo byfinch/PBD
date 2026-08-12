@@ -119,6 +119,11 @@ async function attempt(attemptNo) {
     const code = j?.status?.error_code ?? "";
     console.log(`start deneme ${a}: ${code || "?"}`);
     if (code.includes("CORE_DOWNLOADING")) { await sleep(15000); continue; }
+    if (code === "LOCK_PROFILE_ERROR") {
+      await lapi(`/api/v1/profile/stop/p/${profile.id}`).catch(() => {});
+      await sleep(8000);
+      continue;
+    }
     if (code === "PROFILE_ALREADY_RUNNING") {
       await lapi(`/api/v1/profile/stop/p/${profile.id}`).catch(() => {});
       await sleep(6000);
