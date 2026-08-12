@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Agent, fetch as uFetch } from "undici";
-import { RateLimiter } from "../util/time.js";
+import { RateLimiter, sleep } from "../util/time.js";
 import { logger } from "../logger.js";
 import type { AntidetectClient, AntidetectProfile } from "./client.js";
 
@@ -22,6 +22,9 @@ const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
  *      → { data: { port: "44901" (string!), ... }, status: { error_code: "" } }
  *      CDP http endpoint is then http://127.0.0.1:{port}/json/version.
  *  - Stop:  GET {base}/api/v1/profile/stop/p/{profileId}   (v1 base, no folder!)
+ *  - Cloud session lock (bpds): GET https://api.multilogin.com/bpds/profile/unlock_profiles?ids={profileId}
+ *      clears a crashed session's server-side lock (LOCK_PROFILE_ERROR on start);
+ *      check via GET /bpds/profile/locked_profile_ids. No-op when unlocked.
  *  - While the Mimic core downloads (first launch), start answers
  *      error_code CORE_DOWNLOADING_STARTED / http_code 500 — poll until ready.
  *  - Envelope: { status: { error_code: string, http_code: number, message },
@@ -268,6 +271,20 @@ export class MultiloginDriver implements AntidetectClient {
     ).then((d) => ({ port: String(d?.port ?? "") }));
   }
 
+  /**
+   * bpds cloud session lock: crash'te kapanan bir oturum kilidi cloud'da
+   * bırakır ("profile is started") — lokal stop/.lock silme bunu açmaz.
+   * Doğrulanmış reçete: GET api.multilogin.com/bpds/profile/unlock_profiles?ids=<id>
+   * (aynı cloud Bearer token; kilit yoksa 200/no-op döner).
+   * Kontrol: GET /bpds/profile/locked_profile_ids.
+   */
+  private async unlockProfile(profileId: string): Promise<void> {
+    await this.request<unknown>("https://api.multilogin.com/bpds/profile/unlock_profiles", {
+      params: { ids: profileId },
+    });
+    logger.info({ profileId }, "cloud profile lock released (bpds unlock_profiles)");
+  }
+
   /** Start the profile and return its CDP websocket endpoint. */
   async startBrowser(profileId: string): Promise<string> {
     const folderId = await this.folderFor(profileId);
@@ -291,6 +308,16 @@ export class MultiloginDriver implements AntidetectClient {
           logger.warn({ profileId }, "profile already running, stopping stale browser");
           await this.stopBrowser(profileId).catch(() => {});
           await new Promise((r) => setTimeout(r, 5_000));
+          started = await this.rawStart(profileId, folderId);
+          break;
+        }
+        if (code === "LOCK_PROFILE_ERROR") {
+          // Crash'te kalan bpds cloud oturum kilidi — unlock + tek retry.
+          logger.warn({ profileId }, "cloud session lock — unlocking via bpds and retrying");
+          await this.unlockProfile(profileId).catch((unlockErr) => {
+            logger.warn({ err: String(unlockErr), profileId }, "bpds unlock failed");
+          });
+          await sleep(3_000);
           started = await this.rawStart(profileId, folderId);
           break;
         }

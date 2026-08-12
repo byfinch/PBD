@@ -5,7 +5,7 @@ import type { IpTrustStore, TrustCookie } from "../store/ipTrust.js";
 import { SolverPolicy } from "./policy.js";
 import { solveRecaptchaMulti, reportIncorrect } from "./solver.js";
 import { logger } from "../logger.js";
-import { sleep } from "../util/time.js";
+import { randInt, sleep } from "../util/time.js";
 
 /**
  * Google /sorry recovery, PBD skeleton.
@@ -163,7 +163,30 @@ async function submitToken(page: Page, token: string, callback: string | null): 
 
   if (!submitted) return false;
   logger.info({ via: submitted }, "submitted captcha token via in-page callback/form");
-  await sleep(8_000);
+  await sleep(4_000);
+  // Callback formu GÖNDERMEYEBİLİR (sadece submit butonunu açar): hâlâ
+  // duvardaysak submit butonuna/form'a düş.
+  if (!(await isRealSerp(page))) {
+    const kicked = await page
+      .evaluate(() => {
+        const btn = document.querySelector(
+          '#captcha-form input[type="submit"], #captcha-form button[type="submit"], #recaptcha-submit, form[action*="sorry"] input[type="submit"], form[action*="index"] input[type="submit"]'
+        ) as HTMLElement | null;
+        if (btn) {
+          btn.click();
+          return "click";
+        }
+        const form = document.querySelector('form[action*="sorry"], form[action*="index"], form') as HTMLFormElement | null;
+        if (form) {
+          form.submit();
+          return "submit";
+        }
+        return false;
+      })
+      .catch(() => false as const);
+    if (kicked) logger.info({ via: kicked }, "callback sonrası form submit fallback");
+    await sleep(8_000);
+  }
   await page.waitForLoadState("domcontentloaded", { timeout: 15_000 }).catch(() => {});
   return isRealSerp(page);
 }
@@ -188,6 +211,70 @@ export interface RecoveryResult {
 }
 
 /**
+ * Ücretsiz ilk şans: reCAPTCHA checkbox'ına insan gibi tık. Gerçek tarayıcı
+ * parmak izi + davranış güvenli görünürse Google puzzle açmadan geçirir;
+ * /sorry formu token dolunca kendiliğinden (ya da bizim submit'imizle) düşer.
+ * Görsel puzzle (bframe) açılırsa vazgeçilir — ücretli solver'a düşülür.
+ */
+async function tryNaturalCheckbox(page: Page): Promise<boolean> {
+  try {
+    const anchor = page
+      .frameLocator('iframe[src*="recaptcha"][src*="anchor"]')
+      .first();
+    const box = anchor.locator(".recaptcha-checkbox-border").first();
+    if ((await box.count()) === 0) return false;
+    await box.scrollIntoViewIfNeeded({ timeout: 4_000 }).catch(() => {});
+    await sleep(randInt(700, 1_600));
+    await box.click({ timeout: 5_000 });
+
+    const tokenLength = () =>
+      page
+        .evaluate(
+          () =>
+            (document.querySelector('textarea[name="g-recaptcha-response"], #g-recaptcha-response') as HTMLTextAreaElement | null)
+              ?.value?.length ?? 0
+        )
+        .catch(() => 0);
+
+    let solved = false;
+    // bframe (puzzle) iframe'i sayfada her zaman render edilir — görünürlük
+    // kontrolü güvenilir değil. Tek objektif sinyal: token dolması. Puzzle
+    // açılırsa token hiç gelmez ve 12 sn sonra vazgeçilir.
+    for (let i = 0; i < 12; i++) {
+      await sleep(1_000);
+      if ((await tokenLength()) > 50) {
+        solved = true;
+        break;
+      }
+    }
+    if (!solved) return false;
+
+    // /sorry formu çoğu zaman auto-submit eder; etmediyse buton/form düş.
+    await sleep(3_000);
+    if (!(await isRealSerp(page))) {
+      await page
+        .evaluate(() => {
+          const btn = document.querySelector(
+            '#captcha-form input[type="submit"], #captcha-form button[type="submit"], #recaptcha-submit, form[action*="sorry"] input[type="submit"], form[action*="index"] input[type="submit"]'
+          ) as HTMLElement | null;
+          if (btn) {
+            btn.click();
+            return;
+          }
+          (document.querySelector('form[action*="sorry"], form[action*="index"], form') as HTMLFormElement | null)?.submit();
+        })
+        .catch(() => {});
+      await sleep(6_000);
+    }
+    await page.waitForLoadState("domcontentloaded", { timeout: 15_000 }).catch(() => {});
+    return isRealSerp(page);
+  } catch (err) {
+    logger.debug({ err: String(err) }, "natural checkbox attempt failed");
+    return false;
+  }
+}
+
+/**
  * Detect and (when allowed) solve a Google /sorry wall on the current page.
  * Updates the IP-trust vault either way; the caller treats a non-cleared wall
  * as a visit failure for this profile. The engine owns one SolverPolicy per
@@ -201,6 +288,17 @@ export async function recoverFromSorry(
   policy: SolverPolicy
 ): Promise<RecoveryResult> {
   if (!(await pageLooksLikeCaptcha(page))) return { cleared: true, hadWall: false };
+
+  // Ücretli çözümden ÖNCE bedava şans: doğal checkbox tıklaması. Profilin
+  // gerçek parmak izi güvenliyse duvar burada düşer (bütçe harcanmaz).
+  await page
+    .waitForSelector('iframe[src*="recaptcha"][src*="anchor"]', { timeout: 10_000 })
+    .catch(() => {});
+  if (await tryNaturalCheckbox(page)) {
+    vault.markSolved(profile.id, await googleTrustCookies(page));
+    logger.info("captcha wall cleared via natural checkbox (no paid solve)");
+    return { cleared: true, hadWall: true };
+  }
 
   const gate = policy.shouldSolve();
   if (!gate.ok) {
@@ -225,10 +323,21 @@ export async function recoverFromSorry(
       return { cleared: true, hadWall: true };
     }
 
-    const rc = await extractRecaptchaParams(page).catch(() => null);
+    let rc = await extractRecaptchaParams(page).catch(() => null);
     if (!rc?.key) {
-      logger.warn({ attempt }, "sorry wall present but no reCAPTCHA sitekey found");
-      break;
+      // Geç render ya da text-only varyant: bir kez bekle + reload ile taze
+      // challenge şansı ver, yine yoksa bu duvar çözülemez.
+      logger.warn({ attempt }, "sorry wall present but no reCAPTCHA sitekey found — wait + reload");
+      await sleep(randInt(15_000, 25_000));
+      await page.reload({ waitUntil: "domcontentloaded", timeout: 30_000 }).catch(() => {});
+      await page
+        .waitForSelector('.g-recaptcha[data-sitekey], iframe[src*="recaptcha"]', { timeout: 15_000 })
+        .catch(() => {});
+      rc = await extractRecaptchaParams(page).catch(() => null);
+      if (!rc?.key) {
+        logger.warn({ attempt }, "still no sitekey after reload — unsolvable wall variant");
+        break;
+      }
     }
 
     const userAgent = await page.evaluate(() => navigator.userAgent).catch(() => undefined);

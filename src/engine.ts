@@ -7,11 +7,12 @@ import type { AntidetectClient, AntidetectProfile } from "./antidetect/client.js
 import { selectProfiles } from "./antidetect/client.js";
 import { BrowserSession } from "./browser/session.js";
 import { applyMobileEmulation } from "./browser/mobileEmulation.js";
-import { prepareGoogleConsent, openSerp, parseOrganicResults, findTarget, clickOrganicResult, goToNextSerpPage } from "./serp/finder.js";
+import { prepareGoogleConsent, openSerp, parseOrganicResults, findTarget, clickOrganicResult, scrollToTop, typeSearch, goToNextSerpPage } from "./serp/finder.js";
+import type { OrganicResult, SerpParseResult } from "./serp/finder.js";
 import { pageLooksLikeCaptcha, recoverFromSorry } from "./captcha/recovery.js";
 import { SolverPolicy } from "./captcha/policy.js";
 import { behaviorForProfile } from "./util/persona.js";
-import { runSiteVisit, rivalCompareStep } from "./behavior/siteVisit.js";
+import { dwellOnPage, runSiteVisit, rivalCompareStep } from "./behavior/siteVisit.js";
 import { runWarmupVisit } from "./behavior/warmup.js";
 import { sessionTrendWarmup } from "./serp/trendWarmup.js";
 import { dateKey, rampStartDate, todaysPlan, quotaForDay, dayIndexFor, type PlannedVisit } from "./calendar/ramp.js";
@@ -57,18 +58,15 @@ function evidenceDir(config: AppConfig): string {
   return dir;
 }
 
-/** Miss merdiveni: orijinal keyword'e en yakın derinleştirme sorguları. */
-function buildRefinements(keyword: string, domain: string): string[] {
-  const brand = (domain.split(".")[0] ?? domain).trim();
-  const kw = keyword.trim().toLowerCase();
-  const out: string[] = [];
-  const push = (q: string) => {
-    const n = q.trim();
-    if (n && n.toLowerCase() !== kw && !out.includes(n)) out.push(n);
-  };
-  push(kw.includes("giriş") ? `${brand} güncel giriş` : `${brand} giriş`);
-  push(domain);
-  return out;
+/** Doğal kapanış: oturumu google ana sayfasında bırak (miss / duvar / tık hatası çıkışları). */
+async function gotoGoogleHome(page: Page, config: AppConfig): Promise<void> {
+  await page
+    .goto(`https://${config.google.domain}/?hl=${config.google.hl}&gl=${config.google.gl}`, {
+      waitUntil: "domcontentloaded",
+      timeout: config.engine.navTimeoutMs,
+    })
+    .catch(() => {});
+  await sleep(randInt(1_500, 3_500));
 }
 
 /** JPEG screenshot, best-effort — evidence must never crash a visit. */
@@ -158,97 +156,146 @@ export async function runVisitOnce(deps: EngineDeps, item: PlannedVisit, profile
     // canlı trend + doğal davranış.
     const warm = await sessionTrendWarmup(page, config, { isMobile: mobile });
     if (warm.ok) logActivity(`[${profile.name}] trend ısınması: "${warm.trend}" (${warm.method})`);
+    // Isınma navigasyonu timeout'la kesilmiş olabilir; uçuşta kalan goto
+    // merdivenin ilk basamağını böler ("interrupted by another navigation").
+    await page.waitForLoadState("domcontentloaded", { timeout: 10_000 }).catch(() => {});
 
-    const serpReady = await openSerp(page, config, item.keyword).catch((err) => {
-      logger.warn({ err: String(err) }, "SERP navigation failed");
-      return false;
-    });
+    // ── marka merdiveni durum makinesi ──────────────────────────────────
+    // Akış: ısınma SERP'inden itibaren her basamakta arama kutusundan (insan
+    // gibi) sorgula → SERP'de okuma davranışı → hedef varsa tıkla; yoksa
+    // yukarı çık, sonraki basamak. Merdiven tükenirse google ana sayfasına
+    // dönüşle doğal kapanış. Duvar her basamakta bütçeli solver'a gider;
+    // çözülemezse yine ana sayfaya dönülür — oturum asla duvarda/kirli
+    // sekmede ölmez.
+    const siteKws =
+      effectiveSitesList(store, config).find((s) => s.domain === item.targetDomain)?.keywords ?? [];
+    const ladder: string[] = [];
+    const pushQ = (q: string) => {
+      const n = q.trim();
+      if (n && !ladder.some((x) => x.toLowerCase() === n.toLowerCase())) ladder.push(n);
+    };
+    pushQ(item.keyword);
+    for (const q of siteKws) pushQ(q);
+    const steps = ladder.slice(0, 3);
 
-    if (!serpReady || (await pageLooksLikeCaptcha(page))) {
-      ev.failShot = await snap(page, config, visitId, "fail");
-      store.setVisitEvidence(visitId, ev);
-      logActivity(`[${profile.name}] captcha duvarı — solver devrede`);
-      const recovery = await recoverFromSorry(page, config, profile, store.ipTrust, policy);
-      if (!recovery.cleared) {
-        logActivity(`[${profile.name}] captcha çözülemedi: ${recovery.reason ?? "duvar"}`);
-        store.finishVisit(visitId, { status: "captcha", error: recovery.reason ?? "captcha wall" });
+    /** Bir basamağa git: kutudan yaz (fallback goto) + duvar dalı. */
+    const navToQuery = async (q: string): Promise<"ok" | "nav-error" | "wall"> => {
+      await scrollToTop(page);
+      let ok = await typeSearch(page, q, {
+        isMobile: mobile,
+        navTimeoutMs: config.engine.navTimeoutMs,
+      }).catch(() => false);
+      if (!ok) {
+        ok = await openSerp(page, config, q).catch((err) => {
+          logger.warn({ err: String(err), q, url: page.url() }, "ladder goto failed");
+          return false;
+        });
+      }
+      // Sıra kritik: /sorry sayfasında SERP markup olmaz → ok=false olur;
+      // duvar kontrolü nav-error'dan ÖNCE gelmeli yoksa duvar "navigasyon
+      // hatası" diye yutulur ve solver hiç devreye girmez.
+      // Döngü: navigasyon ortası evaluate-throw → yanlış-pozitif duvar
+      // anında "çözüldü" döner, asıl duvar yeniden yüklemede çıkar — ikinci
+      // turda gerçek çözüm yapılır. Sert duvar (çözüm sonrası re-wall) da
+      // aynı döngüde ikinci bir çözüm şansı daha alır.
+      for (let round = 0; round < 2 && (await pageLooksLikeCaptcha(page)); round++) {
+        if (round === 0) logActivity(`[${profile.name}] captcha duvarı — solver devrede`);
+        const recovery = await recoverFromSorry(page, config, profile, store.ipTrust, policy);
+        if (!recovery.cleared) return "wall";
+        if (recovery.hadWall) logActivity(`[${profile.name}] captcha çözüldü, SERP yenileniyor`);
+        await openSerp(page, config, q).catch(() => {});
+        // Sert duvar varyantı: çözüm sonrası metin-only block. Biraz bekle.
+        if (await pageLooksLikeCaptcha(page)) await sleep(randInt(20_000, 40_000));
+        await openSerp(page, config, q).catch(() => {});
+      }
+      if (await pageLooksLikeCaptcha(page)) {
+        store.ipTrust.markSolverFailed(profile.id, "hard re-wall after solve", { maxCooldownMinutes: 60 });
+        return "wall";
+      }
+      if (!ok) {
+        // Duvar çözüldüyse sayfa artık SERP olmalı; markup hâlâ yoksa gerçek nav hatası.
+        ok = await openSerp(page, config, q).catch(() => false);
+        if (!ok) return "nav-error";
+      }
+      return "ok";
+    };
+
+    let target: OrganicResult | null = null;
+    let viaQuery = "";
+    let parsed: SerpParseResult = { results: [], empty: true };
+
+    for (let step = 0; step < steps.length; step++) {
+      const q = steps[step]!;
+      if (step > 0) logActivity(`[${profile.name}] hedef yok — merdiven: "${q}"`);
+      const nav = await navToQuery(q);
+      if (nav === "wall") {
+        ev.failShot = await snap(page, config, visitId, "fail");
+        store.setVisitEvidence(visitId, ev);
+        logActivity(`[${profile.name}] captcha çözülemedi — ana sayfada güvenli rehab sonrası oturum kapanıyor`);
+        await gotoGoogleHome(page, config);
+        // Güvenli alan: duvar sonrası oturum hemen ölmesin — ana sayfada
+        // /search'e ÇIKMADAN kısa doğal aktivite (trend listesi ana sayfada
+        // açılır; tıklamak /search'e gider, duvarlıyken yapılmaz).
+        await dwellOnPage(page, personaBehavior, {
+          isMobile: mobile,
+          budgetMs: { min: 45_000, max: 90_000 },
+        });
+        store.finishVisit(visitId, { status: "captcha", error: "captcha wall" });
         return;
       }
-      logActivity(`[${profile.name}] captcha çözüldü, SERP yenileniyor`);
-      // Recovered — reload the keyword SERP for a clean parse.
-      await openSerp(page, config, item.keyword).catch(() => {});
-      // Sert duvar varyantı: Google çözümden sonra bile metin-only block
-      // sayfası sunabiliyor (sıcak IP). Bir kez bekle + yeniden dene; hâlâ
-      // duvardaysa profili dinlenmeye al — "SERP markup not recognised"
-      // diye yanlış etiketleme.
-      if (await pageLooksLikeCaptcha(page)) {
-        await sleep(randInt(20_000, 40_000));
-        await openSerp(page, config, item.keyword).catch(() => {});
-        if (await pageLooksLikeCaptcha(page)) {
+      if (nav === "nav-error") {
+        logger.warn({ q, profile: profile.name }, "ladder step navigation failed — next step");
+        continue;
+      }
+      if (step === 0) store.ipTrust.markClean(profile.id);
+
+      parsed = await parseOrganicResults(page);
+      if (parsed.empty) {
+        if (step === 0) {
           ev.failShot = await snap(page, config, visitId, "fail");
           store.setVisitEvidence(visitId, ev);
-          store.ipTrust.markSolverFailed(profile.id, "hard re-wall after solve", { maxCooldownMinutes: 60 });
-          logActivity(`[${profile.name}] sert duvar (çözüm sonrası re-wall) — profil 60 dk dinlenmede`);
-          store.finishVisit(visitId, { status: "captcha", error: "hard re-wall after solve" });
+          store.finishVisit(visitId, { status: "error", error: "SERP markup not recognised" });
           return;
         }
+        continue;
       }
-    }
 
-    if (!(await pageLooksLikeCaptcha(page))) {
-      store.ipTrust.markClean(profile.id);
-    }
+      // SERP'de doğal davranış: sonuçları okur gibi kaydır + bekle.
+      await dwellOnPage(page, personaBehavior, {
+        isMobile: mobile,
+        budgetMs: { min: 6_000, max: 15_000 },
+      });
 
-    let parsed = await parseOrganicResults(page);
-    if (parsed.empty) {
-      ev.failShot = await snap(page, config, visitId, "fail");
-      store.setVisitEvidence(visitId, ev);
-      store.finishVisit(visitId, { status: "error", error: "SERP markup not recognised" });
-      return;
-    }
-
-    // ── derin arama (2-3. sayfa, insan gibi sayfalama) ──────────────────
-    let target = findTarget(parsed.results, item.targetDomain);
-    const deep = config.behavior.deepSearch;
-    let pageNum = 1;
-    while (!target && deep.enabled && pageNum < deep.maxPages) {
-      const prevCount = parsed.results.length;
-      logActivity(`[${profile.name}] ${pageNum}. sayfada yok — ${pageNum + 1}. sayfaya geçiliyor`);
-      const moved = await goToNextSerpPage(page, { isMobile: mobile, navTimeoutMs: config.engine.navTimeoutMs });
-      if (!moved) break;
-      pageNum++;
-      const re = await parseOrganicResults(page);
-      if (re.empty) break;
-      if (re.results.length > prevCount) {
-        parsed = re; // mobil "daha fazla": liste uzadı, pozisyonlar zaten mutlak
-      } else {
-        for (const r of re.results) r.position = (pageNum - 1) * 10 + r.position; // desktop: yeni sayfa ofseti
-        parsed = re;
-      }
       target = findTarget(parsed.results, item.targetDomain);
-    }
-    if (target && pageNum > 1) {
-      logActivity(`[${profile.name}] derin aramada bulundu — ${pageNum}. sayfa, poz ${target.position}`);
-    }
+      if (target) {
+        viaQuery = q === item.keyword ? "" : q;
+        if (viaQuery) logActivity(`[${profile.name}] merdivende bulundu — "${q}" poz ${target.position}`);
+        break;
+      }
 
-    // ── sorgu derinleştirme merdiveni (marka↔domain sinyali) ───────────
-    let viaQuery = "";
-    if (!target && config.behavior.refineOnMiss.enabled) {
-      const ladder = buildRefinements(item.keyword, item.targetDomain).slice(0, config.behavior.refineOnMiss.maxRefinements);
-      for (const q of ladder) {
-        if (await pageLooksLikeCaptcha(page)) break; // derinleştirmede solver yakılmaz
-        logActivity(`[${profile.name}] sorgu derinleştiriliyor: "${q}"`);
-        const ok = await openSerp(page, config, q).catch(() => false);
-        if (!ok || (await pageLooksLikeCaptcha(page))) break;
-        const re = await parseOrganicResults(page);
-        if (re.empty) continue;
-        parsed = re;
-        target = findTarget(re.results, item.targetDomain);
-        if (target) {
-          viaQuery = q;
-          logActivity(`[${profile.name}] derinleştirme ile bulundu — "${q}" poz ${target.position}`);
-          break;
+      // Derin tarama: 1. sayfada yoksa 2-3. sayfaya hızlı bak. Amaç tıklamak
+      // (hedef oradaysa CTR sinyali üretmek); bulunamazsa merdivenin doğal
+      // akışı (yukarı çık, sonraki sorgu) aynen sürer.
+      if (config.behavior.deepSearch.enabled) {
+        let pageNum = 1;
+        while (pageNum < config.behavior.deepSearch.maxPages) {
+          const moved = await goToNextSerpPage(page, { isMobile: mobile, navTimeoutMs: config.engine.navTimeoutMs });
+          if (!moved) break;
+          pageNum++;
+          const re = await parseOrganicResults(page);
+          if (re.empty) break;
+          if (re.results.length <= parsed.results.length) {
+            for (const r of re.results) r.position = (pageNum - 1) * 10 + r.position; // desktop: yeni sayfa ofseti
+          }
+          parsed = re;
+          target = findTarget(parsed.results, item.targetDomain);
+          if (target) {
+            viaQuery = q === item.keyword ? "" : q;
+            logActivity(`[${profile.name}] derin taramada bulundu — "${q}" ${pageNum}. sayfa, poz ${target.position}`);
+            break;
+          }
         }
+        if (target) break;
       }
     }
 
@@ -258,6 +305,7 @@ export async function runVisitOnce(deps: EngineDeps, item: PlannedVisit, profile
 
     if (!target) {
       logActivity(`[${profile.name}] hedef hiçbir yerde yok — miss ("${item.keyword}" / ${item.targetDomain})`);
+      await gotoGoogleHome(page, config);
       store.finishVisit(visitId, { status: "missed" });
       // The miss still told us the SERP state — keep it as a rank observation.
       store.insertPosition({ date: today, keyword: item.keyword, domain: item.targetDomain, position: null, device: mobile ? "mobile" : "desktop" });
@@ -289,6 +337,7 @@ export async function runVisitOnce(deps: EngineDeps, item: PlannedVisit, profile
     if (!landed) {
       ev.failShot = await snap(page, config, visitId, "fail");
       store.setVisitEvidence(visitId, ev);
+      await gotoGoogleHome(page, config);
       store.finishVisit(visitId, { status: "error", position: target.position, error: "organic click failed" });
       return;
     }
@@ -337,7 +386,16 @@ export async function runVisitOnce(deps: EngineDeps, item: PlannedVisit, profile
     logActivity(`[${profile.name}] HATA: ${errMsg.slice(0, 120)}`);
     store.finishVisit(visitId, { status: "error", error: errMsg });
   } finally {
-    if (session) await session.detach();
+    if (session) {
+      // Kapanış hijyeni: fazla sekmeleri kapat (tık popup açmış olabilir),
+      // profili nötr sayfada bırak — sonraki açılışta eski SERP/duvar/
+      // yönlendirme sekmesi geri yüklenip akışı kirletmesin.
+      for (const other of session.context.pages()) {
+        if (other !== session.page) await other.close().catch(() => {});
+      }
+      await session.page.goto("about:blank").catch(() => {});
+      await session.detach();
+    }
     if (browserStarted) {
       await antidetect.stopBrowser(profile.id).catch((err) => {
         logger.warn({ err: String(err) }, "stopBrowser failed");

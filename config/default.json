@@ -16,10 +16,13 @@
   },
   "sites": [
     {
-      "domain": "example.com",
-      "keywords": [
-        "example keyword"
-      ],
+      "domain": "milanbahisde.com",
+      "keywords": ["milanbahis", "milanbahis giriş", "milanbahis güncel giriş", "milanbahisde.com"],
+      "weight": 1
+    },
+    {
+      "domain": "rovbett.com",
+      "keywords": ["rovbet", "rovbet giriş", "rovbet güncel giriş", "rovbett.com"],
       "weight": 1
     }
   ],

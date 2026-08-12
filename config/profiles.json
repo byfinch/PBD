@@ -2,16 +2,75 @@
   "provider": "multilogin",
   "folderId": "0509ecba-935f-484b-bb1f-18c8370d1017",
   "profiles": [
-    { "name": "PBD-01", "id": "8dd1898f-570f-4dac-a193-46ec9a36e3f8", "os": "android", "proxyLogin": "GMscFKpZ_1", "exitIp": "131.222.219.146" },
-    { "name": "PBD-02", "id": "6e252d0e-878a-4b4b-a665-6cd57a8ded0b", "os": "android", "proxyLogin": "GMscFKpZ_2", "exitIp": "131.222.216.30" },
-    { "name": "PBD-03", "id": "20a1afd4-104e-447c-b474-b3a202199b4d", "os": "android", "proxyLogin": "GMscFKpZ_3", "exitIp": "131.222.219.244" },
-    { "name": "PBD-04", "id": "d2f6eb55-17c0-4381-931f-406f4a543467", "os": "android", "proxyLogin": "GMscFKpZ_4", "exitIp": "131.222.219.71" },
-    { "name": "PBD-05", "id": "7e763769-68f7-4fb0-88f8-0a7f638e6765", "os": "android", "proxyLogin": "GMscFKpZ_5", "exitIp": "131.222.218.9" },
-    { "name": "PBD-06", "id": "2a2a85fd-2e77-4b75-b29d-0004da196081", "os": "android", "proxyLogin": "GMscFKpZ_6", "exitIp": "131.222.217.116" },
-    { "name": "PBD-07", "id": "fd3a33c5-f197-4688-82fe-412be19eb3ff", "os": "android", "proxyLogin": "GMscFKpZ_7", "exitIp": "131.222.216.105" },
-    { "name": "PBD-08", "id": "a8ef6245-8c8d-4499-acba-8b80e4cd5d0f", "os": "windows", "proxyLogin": "GMscFKpZ_8", "exitIp": "131.222.218.249" },
-    { "name": "PBD-09", "id": "37be29a7-668e-431f-9bb0-ca8e217e8083", "os": "windows", "proxyLogin": "GMscFKpZ_9", "exitIp": "131.222.219.220" },
-    { "name": "PBD-10", "id": "3a8d0537-754f-4301-be92-4bc6987f0887", "os": "windows", "proxyLogin": "GMscFKpZ_10", "exitIp": "131.222.216.47" }
-  ],
-  "proxy": { "host": "79.127.168.43", "port": 50101, "type": "socks5", "password": "uDdliaN2SU" }
+    {
+      "name": "PBD-01",
+      "id": "e7a207bd-ce4b-4419-8484-056b53dbb3c4",
+      "os": "windows",
+      "proxyLogin": "2235556331_0509ecba_935f_484b_bb1f_18c8370d1017_multilogin_com-country-TR-sid-Fz6IpzFB1w-filter-medium",
+      "exitIp": "residential-TR"
+    },
+    {
+      "name": "PBD-02",
+      "id": "dc3a4774-4464-4273-910c-6318a4fd715a",
+      "os": "windows",
+      "proxyLogin": "2235556331_0509ecba_935f_484b_bb1f_18c8370d1017_multilogin_com-country-TR-sid-AqbUaqn28zbYi-filter-medium",
+      "exitIp": "residential-TR"
+    },
+    {
+      "name": "PBD-03",
+      "id": "42508b65-f7a8-43fa-8c89-8b806712a899",
+      "os": "windows",
+      "proxyLogin": "2235556331_0509ecba_935f_484b_bb1f_18c8370d1017_multilogin_com-country-TR-sid-Pkh3dGFpubZyHUpvGl-filter-medium",
+      "exitIp": "residential-TR"
+    },
+    {
+      "name": "PBD-04",
+      "id": "be564f27-042f-469e-9058-58197cce57b2",
+      "os": "windows",
+      "proxyLogin": "2235556331_0509ecba_935f_484b_bb1f_18c8370d1017_multilogin_com-country-TR-sid-WSgpiN46Jh0-filter-medium",
+      "exitIp": "residential-TR"
+    },
+    {
+      "name": "PBD-05",
+      "id": "295e1229-e965-4018-8420-3ee64b6409bd",
+      "os": "windows",
+      "proxyLogin": "2235556331_0509ecba_935f_484b_bb1f_18c8370d1017_multilogin_com-country-TR-sid-G2hnaMq2HNExp43F-filter-medium",
+      "exitIp": "residential-TR"
+    },
+    {
+      "name": "PBD-06",
+      "id": "907dedc7-5d7f-4063-8e40-495358d6efc2",
+      "os": "windows",
+      "proxyLogin": "2235556331_0509ecba_935f_484b_bb1f_18c8370d1017_multilogin_com-country-TR-sid-H2mudFkns-filter-medium",
+      "exitIp": "residential-TR"
+    },
+    {
+      "name": "PBD-07",
+      "id": "3e005e2a-469d-454d-91d7-08d2b019b1eb",
+      "os": "windows",
+      "proxyLogin": "2235556331_0509ecba_935f_484b_bb1f_18c8370d1017_multilogin_com-country-TR-sid-n5dz8Pc3OXQw-filter-medium",
+      "exitIp": "residential-TR"
+    },
+    {
+      "name": "PBD-08",
+      "id": "a8ef6245-8c8d-4499-acba-8b80e4cd5d0f",
+      "os": "windows",
+      "proxyLogin": "2235556331_0509ecba_935f_484b_bb1f_18c8370d1017_multilogin_com-country-TR-sid-PIFh7KKgDH7NmNfB5-filter-medium",
+      "exitIp": "residential-TR"
+    },
+    {
+      "name": "PBD-09",
+      "id": "37be29a7-668e-431f-9bb0-ca8e217e8083",
+      "os": "windows",
+      "proxyLogin": "2235556331_0509ecba_935f_484b_bb1f_18c8370d1017_multilogin_com-country-TR-sid-YwKkJpehhw-filter-medium",
+      "exitIp": "residential-TR"
+    },
+    {
+      "name": "PBD-10",
+      "id": "3a8d0537-754f-4301-be92-4bc6987f0887",
+      "os": "windows",
+      "proxyLogin": "2235556331_0509ecba_935f_484b_bb1f_18c8370d1017_multilogin_com-country-TR-sid-6SpcBIXXnz5MxypIznz-filter-medium",
+      "exitIp": "residential-TR"
+    }
+  ]
 }

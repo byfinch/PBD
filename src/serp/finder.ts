@@ -3,7 +3,7 @@ import type { AppConfig } from "../config.js";
 import type { BrowserSession } from "../browser/session.js";
 import { tapMobile } from "../browser/mobileEmulation.js";
 import { logger } from "../logger.js";
-import { sleep } from "../util/time.js";
+import { randInt, sleep } from "../util/time.js";
 
 /**
  * Organic SERP finder.
@@ -319,6 +319,50 @@ export async function goToNextSerpPage(
     await page.waitForSelector("#rso", { timeout: 8_000 }).catch(() => {});
     return true;
   } catch {
+    return false;
+  }
+}
+
+/**
+ * Yumuşak şekilde sayfa başına dön ("yukarı çık"). Merdivenin bir sonraki
+ * basamağında arama kutusu görünür olsun diye kullanılır.
+ */
+export async function scrollToTop(page: Page): Promise<void> {
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "smooth" })).catch(() => {});
+  await sleep(randInt(700, 1_600));
+}
+
+/**
+ * Arama kutusuna insan gibi yazıp Enter ile gönder — /search URL'sine goto
+ * yerine geçer. Isınma ya da önceki SERP üzerindeyken kullanılır; kutu
+ * bulunamazsa ya da navigasyon /search'e çıkmazsa false döner (caller
+ * openSerp'e düşer).
+ */
+export async function typeSearch(
+  page: Page,
+  query: string,
+  opts: { isMobile?: boolean; navTimeoutMs?: number } = {}
+): Promise<boolean> {
+  const navTimeout = opts.navTimeoutMs ?? 45_000;
+  try {
+    const box = page.locator('textarea[name="q"], input[name="q"]').first();
+    if ((await box.count()) === 0) return false;
+    await box.scrollIntoViewIfNeeded({ timeout: 5_000 }).catch(() => {});
+    await box.click({ timeout: 5_000 });
+    await sleep(randInt(300, 800));
+    await box.fill("");
+    await page.keyboard.type(query, { delay: randInt(50, 140) });
+    await sleep(randInt(400, 1_100));
+    const navP = page
+      .waitForNavigation({ waitUntil: "domcontentloaded", timeout: navTimeout })
+      .catch(() => null);
+    await page.keyboard.press("Enter");
+    await navP;
+    await page.waitForLoadState("domcontentloaded", { timeout: 10_000 }).catch(() => {});
+    await sleep(800 + Math.random() * 1200);
+    return /\/search/.test(page.url());
+  } catch (err) {
+    logger.debug({ err: String(err) }, "typeSearch failed");
     return false;
   }
 }

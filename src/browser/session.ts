@@ -92,6 +92,13 @@ export class BrowserSession {
       !u.startsWith("devtools://") && !u.startsWith("chrome://") && !u.startsWith("chrome-extension://") && !u.startsWith("edge://");
     const usable = context.pages().find((p) => isContentPage(p.url()));
     const page = usable ?? (await context.newPage());
+    // Oturum hijyeni: cloud profil önceki oturumun sekmelerini geri yükler;
+    // eski SERP ya da /sorry sekmesi açık gelirse duvar kendini tekrar tetikler.
+    // Fazla içerik sekmelerini kapat, kalanı boş sayfayla başlat.
+    for (const other of context.pages()) {
+      if (other !== page && isContentPage(other.url())) await other.close().catch(() => {});
+    }
+    if (!page.url().startsWith("about:")) await page.goto("about:blank").catch(() => {});
     // NOTE: no automatic setResourceDiet here — the diet lives in the
     // --blink-settings=imagesEnabled=false launch flag (zero per-request cost).
     return new BrowserSession(browser, context, page);

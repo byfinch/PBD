@@ -110,7 +110,10 @@ export async function runWarmupVisit(deps: EngineDeps, profile: AntidetectProfil
     logger.warn({ err: errMsg, profile: profile.name }, "warmup visit failed");
     store.finishVisit(visitId, { status: "error", error: errMsg });
   } finally {
-    if (session) await session.detach();
+    if (session) {
+      await session.page.goto("about:blank").catch(() => {}); // kapanış hijyeni
+      await session.detach();
+    }
     if (browserStarted) await antidetect.stopBrowser(profile.id).catch(() => {});
   }
 }
