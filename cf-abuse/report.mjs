@@ -193,6 +193,12 @@ async function attempt(attemptNo) {
     }
   }
 
+  // dolu form kaniti (turnstile oncesi)
+  for (let i = 0; i < 5; i++) { await cdp.wheel(800); await sleep(500); }
+  await cdp.screenshot(`evidence/filled-${Date.now()}.jpg`);
+  // basa don — turnstile widget'i kendi scroll'layacak
+  for (let i = 0; i < 5; i++) { await cdp.wheel(-800); await sleep(400); }
+
   // Turnstile — once sayfa dibine in (layout sabitlensin), sonra oku
   for (let i = 0; i < 5; i++) { await cdp.wheel(800); await sleep(600); }
   await sleep(1500);
