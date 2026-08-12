@@ -75,6 +75,7 @@ async function assignExit(profileId, proxy) {
   return !j?.status?.error_code;
 }
 
+const PY = process.platform === "win32" ? "python" : "python3";
 const L = "https://launcher.mlx.yt:45001";
 async function lapi(path) {
   const r = await uFetch(L + path, { headers: { Authorization: `Bearer ${mlxToken}` }, dispatcher: tls });
@@ -199,8 +200,9 @@ async function attempt(attemptNo) {
   // basa don — turnstile widget'i kendi scroll'layacak
   for (let i = 0; i < 5; i++) { await cdp.wheel(-800); await sleep(400); }
 
-  // Turnstile — KOORDINATSIZ: klavye ile. DSA checkbox'indan sonra Tab -> widget, Space -> isaretle.
-  // Submit'in disabled dusmesi = gecti (DOM attribute, guvenilir).
+  // Turnstile — PIKSEL REHBERLI: screenshot'ta turuncu CF logosunu bul,
+  // checkbox = logo - 250px. Tık sonrasi yesil piksel dogrulamasi.
+  const { execFileSync } = await import("node:child_process");
   async function submitEnabled() {
     const doc = await cdp.call("DOM.getDocument", { depth: -1 });
     const q = await cdp.call("DOM.querySelector", { nodeId: doc.root.nodeId, selector: 'button[type="submit"]' });
@@ -208,20 +210,35 @@ async function attempt(attemptNo) {
     return !(await cdp.isDisabled(q.nodeId));
   }
   let passed = false;
-  for (let attemptTs = 1; attemptTs <= 4 && !passed; attemptTs++) {
-    await cdp.key("Tab");
-    await sleep(400);
-    await cdp.key(" ");
-    console.log(`turnstile klavye denemesi ${attemptTs}`);
-    for (let t = 0; t < 20 && !passed; t += 4) {
-      await sleep(4000);
-      passed = await submitEnabled();
+  for (let attemptTs = 1; attemptTs <= 3 && !passed; attemptTs++) {
+    // sayfa dibine in + settle
+    for (let i = 0; i < 5; i++) { await cdp.wheel(800); await sleep(500); }
+    await sleep(1500);
+    const shotPath = `evidence/ts-find-${Date.now()}.jpg`;
+    await cdp.screenshot(shotPath);
+    let out = "";
+    try {
+      out = execFileSync(PY, ["find-widget.py", shotPath], { encoding: "utf8", cwd: process.cwd() }).trim();
+    } catch { out = "yok"; }
+    console.log(`widget tarama ${attemptTs}: ${out}`);
+    if (out === "yok") { await sleep(4000); continue; }
+    const [cx, cy] = out.split(",").map(Number);
+    await cdp.click(cx, cy);
+    console.log("tik atildi:", cx, cy);
+    // yesil tik dogrulamasi (piksel) + submit state
+    for (let t = 0; t < 24 && !passed; t += 6) {
+      await sleep(6000);
+      const vPath = `evidence/ts-verify-${Date.now()}.jpg`;
+      await cdp.screenshot(vPath);
+      let green = "";
+      try { green = execFileSync(PY, ["find-widget.py", vPath, "verify"], { encoding: "utf8" }).trim(); } catch {}
+      const enabled = await submitEnabled();
+      if (green === "yesil" || enabled) passed = true;
     }
-    if (!passed) await cdp.screenshot(`evidence/ts-try${attemptTs}-${Date.now()}.jpg`);
   }
   await cdp.screenshot(`evidence/ts-${Date.now()}.jpg`);
-  if (!passed) throw new Error("turnstile gecmedi (submit disabled kaldi)");
-  console.log("turnstile GECTI (submit aktif)");
+  if (!passed) throw new Error("turnstile gecmedi");
+  console.log("turnstile GECTI");
 
   if (DRY) {
     result = "dry-ok";
