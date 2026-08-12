@@ -199,26 +199,25 @@ async function attempt(attemptNo) {
   // basa don — turnstile widget'i kendi scroll'layacak
   for (let i = 0; i < 5; i++) { await cdp.wheel(-800); await sleep(400); }
 
-  // Turnstile — once sayfa dibine in (layout sabitlensin), sonra oku
-  for (let i = 0; i < 5; i++) { await cdp.wheel(800); await sleep(600); }
-  await sleep(1500);
-  const ts = await cdp.box("#turnstile-widget");
-  if (!ts) throw new Error("turnstile widget yok");
-  console.log("widget box:", JSON.stringify({ x: Math.round(ts.x), y: Math.round(ts.y), w: ts.w, h: ts.h }));
-  if (ts.y < 0 || ts.y > (ts.vwH ?? 1000)) throw new Error("widget viewport disinda (koordinat hatasi)");
-  await cdp.click(ts.x + 28, ts.y + ts.h / 2);
-  console.log("turnstile tiklandi — token bekleniyor");
-
-  // Submit'in acilmasi = token gecti (DOM: disabled attribute duser)
-  const submitDoc = await cdp.call("DOM.getDocument", { depth: -1 });
-  const submitQ = await cdp.call("DOM.querySelector", { nodeId: submitDoc.root.nodeId, selector: 'button[type="submit"]' });
+  // Turnstile — KOORDINATSIZ: klavye ile. DSA checkbox'indan sonra Tab -> widget, Space -> isaretle.
+  // Submit'in disabled dusmesi = gecti (DOM attribute, guvenilir).
+  async function submitEnabled() {
+    const doc = await cdp.call("DOM.getDocument", { depth: -1 });
+    const q = await cdp.call("DOM.querySelector", { nodeId: doc.root.nodeId, selector: 'button[type="submit"]' });
+    if (!q.nodeId) return false;
+    return !(await cdp.isDisabled(q.nodeId));
+  }
   let passed = false;
-  for (let t = 0; t < 45; t += 3) {
-    if (submitQ.nodeId) {
-      const disabled = await cdp.isDisabled(submitQ.nodeId);
-      if (!disabled) { passed = true; break; }
+  for (let attemptTs = 1; attemptTs <= 4 && !passed; attemptTs++) {
+    await cdp.key("Tab");
+    await sleep(400);
+    await cdp.key(" ");
+    console.log(`turnstile klavye denemesi ${attemptTs}`);
+    for (let t = 0; t < 20 && !passed; t += 4) {
+      await sleep(4000);
+      passed = await submitEnabled();
     }
-    await sleep(3000);
+    if (!passed) await cdp.screenshot(`evidence/ts-try${attemptTs}-${Date.now()}.jpg`);
   }
   await cdp.screenshot(`evidence/ts-${Date.now()}.jpg`);
   if (!passed) throw new Error("turnstile gecmedi (submit disabled kaldi)");

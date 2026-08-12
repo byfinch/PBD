@@ -142,6 +142,18 @@ export class RawCdp {
     }
   }
 
+  /** Trusted key event (Input domain). key: "Tab", " ", "Enter" ... */
+  async key(k) {
+    const code = k === "Tab" ? "Tab" : k === " " ? "Space" : k;
+    const keyCode = k === "Tab" ? 9 : k === " " ? 32 : 13;
+    for (const type of ["keyDown", "keyUp"]) {
+      await this.call("Input.dispatchKeyEvent", {
+        type, key: k, code, windowsVirtualKeyCode: keyCode, nativeVirtualKeyCode: keyCode,
+      });
+      await sleep(60 + Math.random() * 80);
+    }
+  }
+
   async wheel(deltaY) {
     await this.call("Input.dispatchMouseEvent", { type: "mouseWheel", x: 460, y: 500, deltaX: 0, deltaY });
   }
