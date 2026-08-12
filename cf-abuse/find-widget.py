@@ -44,6 +44,26 @@ cy = sum(p[1] for p in band) / len(band)
 cbx = cx - 247
 cby = cy + 10
 
+if mode == "submit":
+    # mavi Submit butonunu bul (kumo-brand mavisi)
+    blue_pts = []
+    for y in range(0, h, 2):
+        for x in range(0, w, 2):
+            r, g, b = px[x, y]
+            if b > 150 and r < 110 and 50 < g < 170:
+                blue_pts.append((x, y))
+    if not blue_pts:
+        print("yok"); sys.exit(0)
+    # yogunluk bandi: buton blok halinde mavi, linkler seyrek — en yogun 20px bandi al
+    from collections import Counter
+    bands = Counter(y // 20 for (x, y) in blue_pts)
+    best_band = max(bands, key=lambda b: bands[b])
+    band_pts = [(x, y) for (x, y) in blue_pts if y // 20 == best_band]
+    cx = sum(p[0] for p in band_pts) / len(band_pts)
+    cy = sum(p[1] for p in band_pts) / len(band_pts)
+    print(f"{int(cx)},{int(cy)}")
+    sys.exit(0)
+
 if mode == "verify":
     # checkbox bolgesinde yesil tik ara
     for yy in range(int(cby) - 30, int(cby) + 30):

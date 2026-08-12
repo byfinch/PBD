@@ -38,8 +38,9 @@ for (const line of readFileSync(`${PBD}/.env`, "utf8").split("\n")) {
   const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
   if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
 }
-const identities = JSON.parse(readFileSync("identities.json", "utf8"));
-mkdirSync("evidence", { recursive: true });
+const identities = JSON.parse(readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "identities.json"), "utf8"));
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
+mkdirSync(resolve(SCRIPT_DIR, "evidence"), { recursive: true });
 
 const tls = new Agent({ connect: { rejectUnauthorized: false } });
 const mlxToken = (await (await uFetch("https://api.multilogin.com/user/signin", {
@@ -50,7 +51,9 @@ const mlxToken = (await (await uFetch("https://api.multilogin.com/user/signin", 
 const profile = args.profile
   ? mapping.profiles.find((x) => x.name === args.profile)
   : mapping.profiles[Math.floor(Math.random() * mapping.profiles.length)];
-const identity = identities[Math.floor(Math.random() * identities.length)];
+const identity = args.identity
+  ? identities.find((x) => x.email === args.identity) ?? identities[0]
+  : identities[Math.floor(Math.random() * identities.length)];
 
 async function genExit() {
   const r = await uFetch("https://profile-proxy.multilogin.com/v1/proxy/connection_url", {
@@ -125,6 +128,18 @@ async function attempt(attemptNo) {
   }
   if (!started?.port) throw new Error("profil acilmadi");
   const cdp = await RawCdp.connect(started.port);
+  // submit POST'unun HTTP kodunu yakala (kesin kanit)
+  let submitHttp = 0;
+  let submitClicked = false;
+  await cdp.enableNetwork();
+  cdp.onResponse((p) => {
+    const url = p.response?.url ?? "";
+    const st = p.response?.status ?? 0;
+    if (!url.includes("abuse.cloudflare.com")) return;
+    if (/_sentry|zaraz|cdn-cgi|favicon|\.css|\.js($|\?)/.test(url)) return; // telemetri/statik
+    console.log("NET:", st, url.slice(0, 90));
+    if (st >= 400 && submitClicked) submitHttp = st;
+  });
 
   try {
     await cdp.navigate(FORM_URL);
@@ -148,57 +163,6 @@ async function attempt(attemptNo) {
     if (!nameBox) throw new Error("EXIT_DEAD");
     console.log("form render OK");
 
-  // alanlar
-  async function fill(sel, value) {
-    const ok = await cdp.clickSelector(sel, 12);
-    if (!ok) { console.log("alan yok:", sel); return false; }
-    await sleep(250);
-    await cdp.typeText(value, 30 + Math.random() * 30);
-    return true;
-  }
-  await fill('[aria-label="Your full name"]', identity.name);
-  await fill('[aria-label="Your email address"]', identity.email);
-  await fill('[aria-label="Confirm email address"]', identity.email);
-
-  // textarealar: 0=Evidence URLs, 1=Logs (zorunlu), 2=Targeted Brand (ops.)
-  const textareas = [];
-  {
-    const doc = await cdp.call("DOM.getDocument", { depth: -1 });
-    const q = await cdp.call("DOM.querySelectorAll", { nodeId: doc.root.nodeId, selector: "textarea" });
-    for (const nid of q.nodeIds ?? []) textareas.push(nid);
-  }
-  async function fillTextarea(nodeId, value) {
-    const b = await cdp.boxForNode(nodeId);
-    if (!b) return false;
-    await cdp.click(b.x + 15, b.y + 15);
-    await sleep(250);
-    await cdp.typeText(value, 12);
-    return true;
-  }
-  if (textareas[0]) await fillTextarea(textareas[0], TARGET);
-  if (textareas[1]) await fillTextarea(textareas[1], reportText());
-  if (textareas[2] && BRAND) await fillTextarea(textareas[2], BRAND + (OFFICIAL ? ` (${OFFICIAL})` : ""));
-  console.log("alanlar doldu");
-
-  // DSA checkbox (role=checkbox, sonuncu)
-  {
-    const doc = await cdp.call("DOM.getDocument", { depth: -1 });
-    const q = await cdp.call("DOM.querySelectorAll", { nodeId: doc.root.nodeId, selector: '[role="checkbox"]' });
-    const ids = q.nodeIds ?? [];
-    if (ids.length) {
-      const b = await cdp.boxForNode(ids[ids.length - 1]);
-      if (b) {
-        await cdp.click(b.x + 8, b.y + 8);
-        console.log("DSA checkbox tiklandi");
-      }
-    }
-  }
-
-  // dolu form kaniti (turnstile oncesi)
-  for (let i = 0; i < 5; i++) { await cdp.wheel(800); await sleep(500); }
-  await cdp.screenshot(`evidence/filled-${Date.now()}.jpg`);
-  // basa don — turnstile widget'i kendi scroll'layacak
-  for (let i = 0; i < 5; i++) { await cdp.wheel(-800); await sleep(400); }
 
   // Turnstile — PIKSEL REHBERLI: screenshot'ta turuncu CF logosunu bul,
   // checkbox = logo - 250px. Tık sonrasi yesil piksel dogrulamasi.
@@ -211,14 +175,18 @@ async function attempt(attemptNo) {
   }
   let passed = false;
   for (let attemptTs = 1; attemptTs <= 3 && !passed; attemptTs++) {
-    // sayfa dibine in + settle
-    for (let i = 0; i < 5; i++) { await cdp.wheel(800); await sleep(500); }
+    // Submit butonuna scroll'la (her zaman en dipte) — widget hemen ustunde
+    {
+      const doc0 = await cdp.call("DOM.getDocument", { depth: -1 });
+      const sq = await cdp.call("DOM.querySelector", { nodeId: doc0.root.nodeId, selector: 'button[type="submit"]' });
+      if (sq.nodeId) await cdp.cdp("DOM.scrollIntoViewIfNeeded", { nodeId: sq.nodeId }).catch(() => {});
+    }
     await sleep(1500);
-    const shotPath = `evidence/ts-find-${Date.now()}.jpg`;
+    const shotPath = `${SCRIPT_DIR}/evidence/ts-find-${Date.now()}.jpg`;
     await cdp.screenshot(shotPath);
     let out = "";
     try {
-      out = execFileSync(PY, ["find-widget.py", shotPath], { encoding: "utf8", cwd: process.cwd() }).trim();
+      out = execFileSync(PY, [resolve(dirname(fileURLToPath(import.meta.url)), "find-widget.py"), shotPath], { encoding: "utf8" }).trim();
     } catch { out = "yok"; }
     console.log(`widget tarama ${attemptTs}: ${out}`);
     if (out === "yok") { await sleep(4000); continue; }
@@ -229,38 +197,146 @@ async function attempt(attemptNo) {
     // yesil tik dogrulamasi (piksel) + submit state
     for (let t = 0; t < 24 && !passed; t += 6) {
       await sleep(6000);
-      const vPath = `evidence/ts-verify-${Date.now()}.jpg`;
+      const vPath = `${SCRIPT_DIR}/evidence/ts-verify-${Date.now()}.jpg`;
       await cdp.screenshot(vPath);
       let green = "";
-      try { green = execFileSync(PY, ["find-widget.py", vPath, "verify"], { encoding: "utf8" }).trim(); } catch {}
+      try { green = execFileSync(PY, [resolve(dirname(fileURLToPath(import.meta.url)), "find-widget.py"), vPath, "verify"], { encoding: "utf8" }).trim(); } catch {}
       const enabled = await submitEnabled();
       if (green === "yesil" || enabled) passed = true;
     }
   }
-  await cdp.screenshot(`evidence/ts-${Date.now()}.jpg`);
+  await cdp.screenshot(`${SCRIPT_DIR}/evidence/ts-${Date.now()}.jpg`);
   if (!passed) throw new Error("turnstile gecmedi");
   console.log("turnstile GECTI");
+
+  // challenge sonrasi olasi reload icin bekleme + form hala duruyor mu
+  await sleep(6000);
+  {
+    let nb = null;
+    for (let i = 0; i < 5 && !nb; i++) {
+      nb = await cdp.box('[aria-label="Your full name"]');
+      if (!nb) await sleep(3000);
+    }
+    if (!nb) throw new Error("turnstile sonrasi form kayboldu (reload?)");
+  }
+
+// alanlar — Tab-zinciri (koordinatsuz): sadece ilk alana tik, gerisi Tab+type
+  {
+    const ok = await cdp.clickSelector('[aria-label="Your full name"]', 12);
+    if (!ok) throw new Error("name alani yok");
+    await sleep(300);
+    await cdp.typeText(identity.name, 30);
+    await cdp.key("Tab"); await sleep(200);
+    await cdp.typeText(identity.email, 30);
+    await cdp.key("Tab"); await sleep(200);
+    await cdp.typeText(identity.email, 30);
+    await cdp.key("Tab"); await sleep(150);  // title (bos)
+    await cdp.key("Tab"); await sleep(150);  // company (bos)
+    await cdp.key("Tab"); await sleep(150);  // telephone (bos)
+    await cdp.key("Tab"); await sleep(150);  // -> Evidence URLs
+    await cdp.typeText(TARGET, 15);          // Evidence URLs
+    await cdp.key("Tab"); await sleep(250);   // Evidence -> Logs
+    await cdp.typeText(reportText(), 8);      // Logs (zorunlu)
+    await cdp.key("Tab"); await sleep(250);   // Logs -> Brand
+    if (BRAND) await cdp.typeText(BRAND + (OFFICIAL ? ` (${OFFICIAL})` : ""), 15);
+    console.log("alanlar doldu (tam zincir)");
+  }
+
+  // DSA — once sayfa dibine don (widget kadraja girsin), sonra odakla
+  {
+    {
+      const doc0 = await cdp.call("DOM.getDocument", { depth: -1 });
+      const sq = await cdp.call("DOM.querySelector", { nodeId: doc0.root.nodeId, selector: 'button[type="submit"]' });
+      if (sq.nodeId) await cdp.cdp("DOM.scrollIntoViewIfNeeded", { nodeId: sq.nodeId }).catch(() => {});
+      await sleep(1500);
+    }
+    const wPath = `${SCRIPT_DIR}/evidence/dsa-anchor-${Date.now()}.jpg`;
+    await cdp.screenshot(wPath);
+    let anchored = false;
+    try {
+      const out = execFileSync(PY, [resolve(dirname(fileURLToPath(import.meta.url)), "find-widget.py"), wPath], { encoding: "utf8" }).trim();
+      if (out !== "yok") {
+        const [wx, wy] = out.split(",").map(Number);
+        await cdp.click(wx, wy);  // zaten yesil — zararsiz, odak widget'a
+        anchored = true;
+      }
+    } catch {}
+    let dsaOk = false;
+    for (let dTry = 1; dTry <= 3 && !dsaOk; dTry++) {
+      await cdp.key("Tab", 8);  // Shift+Tab
+      await sleep(400);
+      await cdp.key(" ");
+      await sleep(800);
+      const doc = await cdp.call("DOM.getDocument", { depth: -1 });
+      const q = await cdp.call("DOM.querySelectorAll", { nodeId: doc.root.nodeId, selector: "label" });
+      for (const nid of q.nodeIds ?? []) {
+        const html = (await cdp.call("DOM.getOuterHTML", { nodeId: nid })).outerHTML ?? "";
+        if (/DSA certification/i.test(html)) {
+          dsaOk = /data-state="checked"|aria-checked="true"/.test(html);
+          break;
+        }
+      }
+      console.log(`DSA deneme ${dTry} (anchor:${anchored}): ${dsaOk ? "isaretli" : "degil"}`);
+    }
+    if (!dsaOk) throw new Error("DSA isaretlenemedi");
+  }
+  // DSA — odak widget'ta; Shift+Tab = DSA checkbox'i, Space = isaretle
+  {
+    let dsaOk = false;
+    for (let dTry = 1; dTry <= 3 && !dsaOk; dTry++) {
+      await cdp.key("Tab", 8);  // Shift+Tab
+      await sleep(400);
+      await cdp.key(" ");
+      await sleep(700);
+      const doc = await cdp.call("DOM.getDocument", { depth: -1 });
+      const q = await cdp.call("DOM.querySelectorAll", { nodeId: doc.root.nodeId, selector: "label" });
+      for (const nid of q.nodeIds ?? []) {
+        const html = (await cdp.call("DOM.getOuterHTML", { nodeId: nid })).outerHTML ?? "";
+        if (/DSA certification/i.test(html)) {
+          dsaOk = /data-state="checked"|aria-checked="true"/.test(html);
+          break;
+        }
+      }
+      console.log(`DSA klavye deneme ${dTry}: ${dsaOk ? "isaretli" : "degil"}`);
+    }
+    if (!dsaOk) throw new Error("DSA isaretlenemedi");
+  }
 
   if (DRY) {
     result = "dry-ok";
     note = "submit atilmadi (dry run)";
   } else {
-    await cdp.clickSelector('button[type="submit"]', 20);
-    console.log("SUBMIT basildi — cevap bekleniyor");
-    await sleep(12000);
-    const html = await cdp.outerHTML("body");
+    // Submit — piksel rehberli (mavi buton)
+    const sPath = `${SCRIPT_DIR}/evidence/submit-find-${Date.now()}.jpg`;
+    await cdp.screenshot(sPath);
+    let sout = "";
+    try { sout = execFileSync(PY, [resolve(dirname(fileURLToPath(import.meta.url)), "find-widget.py"), sPath, "submit"], { encoding: "utf8" }).trim(); } catch {}
+    console.log("submit tarama:", sout);
+    if (sout === "yok") throw new Error("submit butonu bulunamadi");
+    const [sx, sy] = sout.split(",").map(Number);
+    await cdp.click(sx, sy);
+    submitClicked = true;
+    console.log("SUBMIT basildi:", sx, sy);
+    await sleep(15000);
+    const html = await cdp.outerHTML("body").catch(() => "");
+    if (/Failed to fetch/i.test(html)) throw new Error("EXIT_DEAD");  // submit POST ag seviyesinde dustu
+    if (/"dedupe"|already submitted this URL/i.test(html)) {
+      console.log("sunucu: dedupe — bu URL bu kimlikle zaten raporlu");
+      return "dedupe";
+    }
     const ok = /thank you|received|success|tesekkur|alindi/i.test(html) && !/Request failed|error/i.test(html.slice(0, 4000));
     result = ok ? "submitted" : "submit-belirsiz";
     const errMatch = html.match(/Request failed with status (\d+)/);
     if (errMatch) { result = "submit-error"; note = "HTTP " + errMatch[1]; }
+    if (submitHttp) { result = "submit-error"; note = "ag hatasi HTTP " + submitHttp; }
     console.log("sunucu cevabi:", result, note);
   }
-  await cdp.screenshot(`evidence/final-${Date.now()}.jpg`);
+  await cdp.screenshot(`${SCRIPT_DIR}/evidence/final-${Date.now()}.jpg`);
   return result;
   } catch (err) {
     note = String(err).slice(0, 200);
     console.log("HATA:", note);
-    await cdp.screenshot(`evidence/err-${Date.now()}.jpg`).catch(() => {});
+    await cdp.screenshot(`${SCRIPT_DIR}/evidence/err-${Date.now()}.jpg`).catch(() => {});
     // cdp timeout / renderer çökmesi / bos sayfa — exit'e yaz, dondur
     if (/EXIT_DEAD|cdp timeout|Target|closed|profil acilmadi/i.test(note)) return "EXIT_DEAD";
     return "error";
@@ -274,6 +350,7 @@ async function attempt(attemptNo) {
 // ── exit rotasyonlu ana dongu ──────────────────────────────────────────────
 for (let att = 1; att <= 3; att++) {
   console.log(`--- deneme ${att}/3 ---`);
+  note = "";
   const r = await attempt(att);
   if (r !== "EXIT_DEAD" && r !== "error") { result = r; break; }
   result = r;
@@ -291,7 +368,7 @@ for (let att = 1; att <= 3; att++) {
 }
 
 appendFileSync(
-  "reports.jsonl",
+  resolve(SCRIPT_DIR, "reports.jsonl"),
   JSON.stringify({
     ts: new Date().toISOString(),
     profile: profile.name,

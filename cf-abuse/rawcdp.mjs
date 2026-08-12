@@ -26,6 +26,23 @@ export class RawCdp {
     };
   }
 
+  /** Network domain dinleyicisi (Runtime degil — guvenli). */
+  onResponse(cb) {
+    const prev = this.ws.onmessage;
+    this.ws.onmessage = (ev) => {
+      const m = JSON.parse(ev.data);
+      if (m.method === "Network.responseReceived") cb(m.params);
+      if (m.id && this.pending.has(m.id)) {
+        this.pending.get(m.id)(m);
+        this.pending.delete(m.id);
+      }
+    };
+  }
+
+  async enableNetwork() {
+    await this.call("Network.enable");
+  }
+
   cdp(method, params = {}) {
     return new Promise((resolve, reject) => {
       const id = ++this.msgId;
@@ -88,17 +105,30 @@ export class RawCdp {
     return await read();
   }
 
-  /** nodeId icin viewport kutusu (scroll duzeltmeli). */
+  /** nodeId icin viewport kutusu — box() ile ayni settle + sanity disiplini. */
   async boxForNode(nodeId) {
-    await this.cdp("DOM.scrollIntoViewIfNeeded", { nodeId }).catch(() => {});
-    await new Promise((s) => setTimeout(s, 800));
-    const bm = await this.call("DOM.getBoxModel", { nodeId }).catch(() => null);
-    if (!bm?.model) return null;
-    const lm = await this.call("Page.getLayoutMetrics", {}).catch(() => null);
-    const sx = lm?.visualViewport?.pageX ?? 0;
-    const sy = lm?.visualViewport?.pageY ?? 0;
-    const c = bm.model.content;
-    return { x: c[0] - sx, y: c[1] - sy, w: c[2] - c[0], h: c[5] - c[1] };
+    const read = async () => {
+      const lm = await this.call("Page.getLayoutMetrics", {}).catch(() => null);
+      const bm = await this.call("DOM.getBoxModel", { nodeId }).catch(() => null);
+      if (!bm?.model) return null;
+      const vw = lm?.visualViewport;
+      const sx = vw?.pageX ?? 0;
+      const sy = vw?.pageY ?? 0;
+      const c = bm.model.content;
+      return {
+        x: c[0] - sx, y: c[1] - sy, w: c[2] - c[0], h: c[5] - c[1],
+        vwW: vw?.clientWidth ?? 0, vwH: vw?.clientHeight ?? 0,
+      };
+    };
+    for (let i = 0; i < 3; i++) {
+      await this.cdp("DOM.scrollIntoViewIfNeeded", { nodeId }).catch(() => {});
+      await new Promise((s) => setTimeout(s, 900));
+      const b = await read();
+      if (!b) return null;
+      if (b.y >= 0 && b.y + b.h <= b.vwH && b.x >= 0 && b.x + b.w <= b.vwW) return b;
+      await new Promise((s) => setTimeout(s, 700));
+    }
+    return await read();
   }
 
   /** Elementin disabled attribute'u var mi (DOM domain). */
@@ -122,9 +152,9 @@ export class RawCdp {
     await sleep(300 + Math.random() * 250);
     await this.call("Input.dispatchMouseEvent", { type: "mouseMoved", x, y });
     await sleep(200 + Math.random() * 250);
-    await this.call("Input.dispatchMouseEvent", { type: "mousePressed", x, y, button: "left", clickCount: 1 });
+    await this.call("Input.dispatchMouseEvent", { type: "mousePressed", x, y, button: "left", buttons: 1, clickCount: 1 });
     await sleep(70 + Math.random() * 80);
-    await this.call("Input.dispatchMouseEvent", { type: "mouseReleased", x, y, button: "left", clickCount: 1 });
+    await this.call("Input.dispatchMouseEvent", { type: "mouseReleased", x, y, button: "left", buttons: 0, clickCount: 1 });
   }
 
   async clickSelector(selector, offsetX = 8, offsetY = null) {
@@ -135,20 +165,21 @@ export class RawCdp {
   }
 
   async typeText(text, delayMs = 35) {
-    // Input.insertText: trusted text girisi (tek parca). Insansilaştirmak icin parcala.
+    // char event: gercek tus basimi gibi — insertText'in takildigi
+    // (contenteditable/React-controlled) alanlarda da isler.
     for (const ch of text) {
-      await this.call("Input.insertText", { text: ch });
+      await this.call("Input.dispatchKeyEvent", { type: "char", text: ch });
       await sleep(delayMs + Math.random() * delayMs);
     }
   }
 
-  /** Trusted key event (Input domain). key: "Tab", " ", "Enter" ... */
-  async key(k) {
+  /** Trusted key event (Input domain). key: "Tab", " ", "Enter" ... modifiers: 8=Shift */
+  async key(k, modifiers = 0) {
     const code = k === "Tab" ? "Tab" : k === " " ? "Space" : k;
     const keyCode = k === "Tab" ? 9 : k === " " ? 32 : 13;
     for (const type of ["keyDown", "keyUp"]) {
       await this.call("Input.dispatchKeyEvent", {
-        type, key: k, code, windowsVirtualKeyCode: keyCode, nativeVirtualKeyCode: keyCode,
+        type, key: k, code, windowsVirtualKeyCode: keyCode, nativeVirtualKeyCode: keyCode, modifiers,
       });
       await sleep(60 + Math.random() * 80);
     }
