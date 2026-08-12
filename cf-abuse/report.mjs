@@ -222,9 +222,10 @@ async function attempt(attemptNo) {
     } catch { out = "yok"; }
     console.log(`widget tarama ${attemptTs}: ${out}`);
     if (out === "yok") { await sleep(4000); continue; }
-    const [cx, cy] = out.split(",").map(Number);
-    await cdp.click(cx, cy);
-    console.log("tik atildi:", cx, cy);
+    const [cx0, cy0] = out.split(",").map(Number);
+    const dy = (attemptTs - 1) * 12;  // her denemede biraz asagi
+    await cdp.click(cx0, cy0 + dy);
+    console.log("tik atildi:", cx0, cy0 + dy);
     // yesil tik dogrulamasi (piksel) + submit state
     for (let t = 0; t < 24 && !passed; t += 6) {
       await sleep(6000);

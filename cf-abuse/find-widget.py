@@ -41,8 +41,8 @@ if not band:
 cx = sum(p[0] for p in band) / len(band)
 cy = sum(p[1] for p in band) / len(band)
 # logo widget'in SAGINDA — checkbox yaklasik 240-280px solda
-cbx = cx - 250
-cby = cy
+cbx = cx - 247
+cby = cy + 10
 
 if mode == "verify":
     # checkbox bolgesinde yesil tik ara
