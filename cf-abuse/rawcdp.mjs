@@ -178,6 +178,16 @@ export class RawCdp {
     return true;
   }
 
+  /** DOM.focus — koordinatsuz/tik'siz odak; scroll yarisi yok. */
+  async focusSelector(selector, index = 0) {
+    const doc = await this.call("DOM.getDocument", { depth: -1 });
+    const q = await this.call("DOM.querySelectorAll", { nodeId: doc.root.nodeId, selector });
+    const nodeId = q.nodeIds?.[index];
+    if (!nodeId) return false;
+    await this.call("DOM.focus", { nodeId });
+    return true;
+  }
+
   async typeText(text, delayMs = 35) {
     // char event: gercek tus basimi gibi — insertText'in takildigi
     // (contenteditable/React-controlled) alanlarda da isler.

@@ -225,26 +225,23 @@ async function attempt(attemptNo) {
     if (!nb) throw new Error("turnstile sonrasi form kayboldu (reload?)");
   }
 
-// alanlar — Tab-zinciri (koordinatsuz): sadece ilk alana tik, gerisi Tab+type
+// alanlar — DOM.focus + type (tik/Tab yarisi YOK): her alan dogrudan odaklanir
   {
-    const ok = await cdp.clickSelector('[aria-label="Your full name"]', 12);
-    if (!ok) throw new Error("name alani yok");
+    const F = async (sel, text, d = 30, idx = 0) => {
+      const ok = await cdp.focusSelector(sel, idx);
+      if (!ok) throw new Error("alan yok: " + sel);
+      await sleep(300);
+      await cdp.typeText(text, d);
+    };
+    await F('[aria-label="Your full name"]', identity.name);
+    await F('[aria-label="Your email address"]', identity.email);
+    await F('[aria-label="Confirm email address"]', identity.email);
+    await F('[aria-label="Evidence URLs"]', TARGET, 15);
+    // Logs (zorunlu) — paragraflar arasi gercek Enter
+    if (!await cdp.focusSelector('[aria-label="Logs or other evidence of abuse"]')) throw new Error("logs alani yok");
     await sleep(300);
-    await cdp.typeText(identity.name, 30);
-    await cdp.key("Tab"); await sleep(200);
-    await cdp.typeText(identity.email, 30);
-    await cdp.key("Tab"); await sleep(200);
-    await cdp.typeText(identity.email, 30);
-    await cdp.key("Tab"); await sleep(150);  // title (bos)
-    await cdp.key("Tab"); await sleep(150);  // company (bos)
-    await cdp.key("Tab"); await sleep(150);  // telephone (bos)
-    await cdp.key("Tab"); await sleep(250);  // telephone -> Evidence URLs
-    await cdp.typeText(TARGET, 15);          // Evidence URLs
-    // Logs (zorunlu): Evidence'dan 2 Tab (ilki "Lumen Database" linkine duser).
-    await cdp.key("Tab"); await sleep(250);  // Evidence -> Lumen linki
-    await cdp.key("Tab"); await sleep(400);  // link -> Logs textarea
     for (const [pi, part] of reportParts().entries()) {
-      if (pi) { await cdp.key("Enter"); await sleep(200); }  // paragraf arasi satir sonu
+      if (pi) { await cdp.key("Enter"); await sleep(200); }
       await cdp.typeText(part, 30);
     }
     // pasif dogrulama: bossa hata ver (dis dongu temiz sekilde yeniden dener)

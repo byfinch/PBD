@@ -3,7 +3,7 @@
 cd "$(dirname "$0")/.."
 LOG=/tmp/proftest.log
 : > $LOG
-PAIR="02:selinates.izm 03:omer.koc.34 04:merve.aksoy.tr 05:serkanpolat06 06:deniz.yilmaz.dev 07:gizem.erden.tr 08:tolga.karaman35 09:irem.yalcin.tr 10:volkanerdem.ist"
+PAIR="04:merve.aksoy.tr 08:tolga.karaman35 09:irem.yalcin.tr 10:volkanerdem.ist"
 for p in $PAIR; do
   i="${p%%:*}"; id="${p#*:}"
   P="PBD-$i"
