@@ -245,14 +245,27 @@ async function attempt(attemptNo) {
     if (!evOk) throw new Error("evidence textarea yok");
     await sleep(300);
     await cdp.typeText(TARGET, 15);
-    const lgOk = (await cdp.clickSelector('[aria-label="Logs or other evidence of abuse"]', 12))
-      || (await cdp.clickSelectorAt("textarea", 1));
-    if (!lgOk) throw new Error("logs textarea yok");
-    await sleep(300);
-    await cdp.typeText(reportText(), 30);     // Logs (zorunlu) — yavas: hizli char event yutuluyor
-    await cdp.box('[aria-label="Logs or other evidence of abuse"]');  // kadraja geri kaydir
-    await cdp.screenshot(`${SCRIPT_DIR}/evidence/logs-check-${Date.now()}.jpg`);
-    console.log("alanlar doldu (dogrudan hedefli)");
+    // Logs (zorunlu): Evidence'dan 2 Tab (ilki "Lumen Database" linkine duser).
+    await cdp.key("Tab"); await sleep(250);
+    await cdp.key("Tab"); await sleep(400);
+    await cdp.typeText(reportText(), 30);
+    // pasif dogrulama: bossa hata ver (dis dongu temiz sekilde yeniden dener)
+    {
+      const lb = await cdp.box('[aria-label="Logs or other evidence of abuse"]');
+      const shotPath = `${SCRIPT_DIR}/evidence/logs-check-${Date.now()}.jpg`;
+      await cdp.screenshot(shotPath);
+      if (lb) {
+        let r = "?";
+        try {
+          r = execFileSync(PY, [resolve(SCRIPT_DIR, "check-text.py"), shotPath,
+            String(Math.round(lb.x)), String(Math.round(lb.y)),
+            String(Math.round(lb.w)), String(Math.round(lb.h))], { encoding: "utf8" }).trim();
+        } catch {}
+        console.log("logs dogrulama:", r);
+        if (r === "bos") throw new Error("logs bos kaldi");
+      }
+    }
+    console.log("alanlar doldu");
   }
 
   // DSA — once sayfa dibine don (widget kadraja girsin), sonra odakla
