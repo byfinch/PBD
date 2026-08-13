@@ -53,21 +53,21 @@
     },
     {
       "name": "PBD-08",
-      "id": "a8ef6245-8c8d-4499-acba-8b80e4cd5d0f",
+      "id": "e3fdea4d-c4fd-4f55-9c68-03484f2f35ce",
       "os": "windows",
       "proxyLogin": "2235556331_0509ecba_935f_484b_bb1f_18c8370d1017_multilogin_com-country-TR-sid-PIFh7KKgDH7NmNfB5-filter-medium",
       "exitIp": "residential-TR"
     },
     {
       "name": "PBD-09",
-      "id": "37be29a7-668e-431f-9bb0-ca8e217e8083",
+      "id": "c7f257e9-770e-4dd7-acf5-a67cbd0fd5ce",
       "os": "windows",
       "proxyLogin": "2235556331_0509ecba_935f_484b_bb1f_18c8370d1017_multilogin_com-country-TR-sid-YwKkJpehhw-filter-medium",
       "exitIp": "residential-TR"
     },
     {
       "name": "PBD-10",
-      "id": "3a8d0537-754f-4301-be92-4bc6987f0887",
+      "id": "f35aa2b4-c88c-495d-9374-8e00a7f94238",
       "os": "windows",
       "proxyLogin": "2235556331_0509ecba_935f_484b_bb1f_18c8370d1017_multilogin_com-country-TR-sid-6SpcBIXXnz5MxypIznz-filter-medium",
       "exitIp": "residential-TR"
