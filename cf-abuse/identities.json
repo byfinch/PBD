@@ -1,42 +1,51 @@
 [
-  {
-    "name": "Ahmet Yilmaz",
-    "email": "ahmet.yilmaz.tr42@meridyendijital.com"
-  },
-  {
-    "name": "Mehmet Demir",
-    "email": "mehmetdemir.ist@meridyendijital.com"
-  },
-  {
-    "name": "Ayse Kaya",
-    "email": "ayse.kaya.tr@meridyendijital.com"
-  },
-  {
-    "name": "Emre Sahin",
-    "email": "emre.sahin.dev@meridyendijital.com"
-  },
-  {
-    "name": "Fatma Celik",
-    "email": "fatmacelik34@meridyendijital.com"
-  },
-  {
-    "name": "Burak Ozturk",
-    "email": "burak.ozturk06@meridyendijital.com"
-  },
-  {
-    "name": "Zeynep Arslan",
-    "email": "zeyneparslan.tr@meridyendijital.com"
-  },
-  {
-    "name": "Can Dogan",
-    "email": "can.dogan.tech@meridyendijital.com"
-  },
-  {
-    "name": "Elif Kurt",
-    "email": "elif.kurt.ank@meridyendijital.com"
-  },
-  {
-    "name": "Murat Aydin",
-    "email": "murat.aydin35@meridyendijital.com"
-  }
+  { "name": "Ahmet Yilmaz", "email": "ahmet.yilmaz.tr42@meridyendijital.com" },
+  { "name": "Mehmet Demir", "email": "mehmetdemir.ist@meridyendijital.com" },
+  { "name": "Ayse Kaya", "email": "ayse.kaya.tr@meridyendijital.com" },
+  { "name": "Emre Sahin", "email": "emre.sahin.dev@meridyendijital.com" },
+  { "name": "Fatma Celik", "email": "fatmacelik34@meridyendijital.com" },
+  { "name": "Burak Ozturk", "email": "burak.ozturk06@meridyendijital.com" },
+  { "name": "Zeynep Arslan", "email": "zeyneparslan.tr@meridyendijital.com" },
+  { "name": "Can Dogan", "email": "can.dogan.tech@meridyendijital.com" },
+  { "name": "Elif Kurt", "email": "elif.kurt.ank@meridyendijital.com" },
+  { "name": "Murat Aydin", "email": "murat.aydin35@meridyendijital.com" },
+  { "name": "Hakan Yildiz", "email": "hakan.yildiz.tr@meridyendijital.com" },
+  { "name": "Selin Ates", "email": "selinates.izm@meridyendijital.com" },
+  { "name": "Omer Faruk Koc", "email": "omer.koc.34@meridyendijital.com" },
+  { "name": "Merve Aksoy", "email": "merve.aksoy.tr@meridyendijital.com" },
+  { "name": "Serkan Polat", "email": "serkanpolat06@meridyendijital.com" },
+  { "name": "Deniz Yilmaz", "email": "deniz.yilmaz.dev@meridyendijital.com" },
+  { "name": "Gizem Erden", "email": "gizem.erden.tr@meridyendijital.com" },
+  { "name": "Tolga Karaman", "email": "tolga.karaman35@meridyendijital.com" },
+  { "name": "Irem Su Yalcin", "email": "irem.yalcin.tr@meridyendijital.com" },
+  { "name": "Volkan Erdem", "email": "volkanerdem.ist@meridyendijital.com" },
+  { "name": "Busra Kaplangi", "email": "busra.kaplan.tr@meridyendijital.com" },
+  { "name": "Onur Tekin", "email": "onur.tekin.ank@meridyendijital.com" },
+  { "name": "Pelin Akbulut", "email": "pelinakbulut.tr@meridyendijital.com" },
+  { "name": "Kaan Yigiter", "email": "kaan.yigit.06@meridyendijital.com" },
+  { "name": "Seda Nur Demirci", "email": "seda.demirci.tr@meridyendijital.com" },
+  { "name": "Umut Karadeniz", "email": "umut.karadeniz.34@meridyendijital.com" },
+  { "name": "Derya Ozkan", "email": "deryaozkan.tr@meridyendijital.com" },
+  { "name": "Baris Unal", "email": "baris.unal.tech@meridyendijital.com" },
+  { "name": "Nazli Gundogdu", "email": "nazli.gundogdu.tr@meridyendijital.com" },
+  { "name": "Cem Akkus", "email": "cemakkus.izm@meridyendijital.com" },
+  { "name": "Yagmur Sen", "email": "yagmur.sen.tr@meridyendijital.com" },
+  { "name": "Arda Gul", "email": "arda.gul.35@meridyendijital.com" },
+  { "name": "Melis Toprak", "email": "melis.toprak.tr@meridyendijital.com" },
+  { "name": "Kerem Aydogdu", "email": "keremaydogdu.ist@meridyendijital.com" },
+  { "name": "Asli Cetin", "email": "asli.cetin.tr@meridyendijital.com" },
+  { "name": "Yusuf Eren Bulut", "email": "yusuf.bulut.06@meridyendijital.com" },
+  { "name": "Esra Karaca", "email": "esra.karaca.tr@meridyendijital.com" },
+  { "name": "Oguzhan Simsek", "email": "oguz.simsek.tr@meridyendijital.com" },
+  { "name": "Hande Yavuz", "email": "handeyavuz.ank@meridyendijital.com" },
+  { "name": "Efe Korkmaz", "email": "efe.korkmaz.34@meridyendijital.com" },
+  { "name": "Gamze Ozdemir", "email": "gamze.ozdemir.tr@meridyendijital.com" },
+  { "name": "Sinan Acar", "email": "sinanacar.ist@meridyendijital.com" },
+  { "name": "Bahar Dogru", "email": "bahar.dogru.tr@meridyendijital.com" },
+  { "name": "Ali Riza Sahin", "email": "ali.sahin.35@meridyendijital.com" },
+  { "name": "Cansu Erol", "email": "cansu.erol.tr@meridyendijital.com" },
+  { "name": "Tuncay Bal", "email": "tuncay.bal.izm@meridyendijital.com" },
+  { "name": "Ozge Kelestemur", "email": "ozge.keles.tr@meridyendijital.com" },
+  { "name": "Ramazan Tosun", "email": "ramazan.tosun.06@meridyendijital.com" },
+  { "name": "Nergis Alkan", "email": "nergis.alkan.tr@meridyendijital.com" }
 ]
