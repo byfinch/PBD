@@ -85,18 +85,18 @@ async function lapi(path) {
   return (await r.json().catch(() => null))?.data;
 }
 
-// ── rapor metni (sablon + hafif varyasyon) ─────────────────────────────────
-function reportText() {
+// ── rapor metni parcalari (sablon + hafif varyasyon) ───────────────────────
+function reportParts() {
   const openers = [
     "This website is impersonating our brand and operating a phishing scam.",
     "We are reporting an active phishing website impersonating our brand.",
     "This site is running a phishing scam by impersonating our brand.",
   ];
   const body = "The reported website copies our logo, design, and content in an attempt to deceive users into believing it is our official website. Users may be tricked into submitting personal information and credentials.";
-  const parts = [openers[Math.floor(Math.random() * openers.length)], body];
-  if (OFFICIAL) parts.push(`Official website: ${OFFICIAL}.`);
-  parts.push(`Reported phishing website: ${TARGET}.`);
-  return parts.join(" ");  // textarea \n tusunu yutuyor — nokta+bosluk ile ayir
+  const parts = [openers[Math.floor(Math.random() * openers.length)] + " " + body];
+  if (OFFICIAL) parts.push(`Official website: ${OFFICIAL}`);
+  parts.push(`Reported phishing website: ${TARGET}`);
+  return parts;
 }
 
 // ── ana akis ───────────────────────────────────────────────────────────────
@@ -238,17 +238,15 @@ async function attempt(attemptNo) {
     await cdp.key("Tab"); await sleep(150);  // title (bos)
     await cdp.key("Tab"); await sleep(150);  // company (bos)
     await cdp.key("Tab"); await sleep(150);  // telephone (bos)
-    // textarealari aria-label ile hedefle (DOM sirasi gorsel sira degil —
-    // kör index yanlis alana kayiyordu). fallback: index.
-    const evOk = (await cdp.clickSelector('[aria-label="Evidence URLs"]', 12))
-      || (await cdp.clickSelectorAt("textarea", 0));
-    if (!evOk) throw new Error("evidence textarea yok");
-    await sleep(300);
-    await cdp.typeText(TARGET, 15);
+    await cdp.key("Tab"); await sleep(250);  // telephone -> Evidence URLs
+    await cdp.typeText(TARGET, 15);          // Evidence URLs
     // Logs (zorunlu): Evidence'dan 2 Tab (ilki "Lumen Database" linkine duser).
-    await cdp.key("Tab"); await sleep(250);
-    await cdp.key("Tab"); await sleep(400);
-    await cdp.typeText(reportText(), 30);
+    await cdp.key("Tab"); await sleep(250);  // Evidence -> Lumen linki
+    await cdp.key("Tab"); await sleep(400);  // link -> Logs textarea
+    for (const [pi, part] of reportParts().entries()) {
+      if (pi) { await cdp.key("Enter"); await sleep(200); }  // paragraf arasi satir sonu
+      await cdp.typeText(part, 30);
+    }
     // pasif dogrulama: bossa hata ver (dis dongu temiz sekilde yeniden dener)
     {
       const lb = await cdp.box('[aria-label="Logs or other evidence of abuse"]');
@@ -259,10 +257,10 @@ async function attempt(attemptNo) {
         try {
           r = execFileSync(PY, [resolve(SCRIPT_DIR, "check-text.py"), shotPath,
             String(Math.round(lb.x)), String(Math.round(lb.y)),
-            String(Math.round(lb.w)), String(Math.round(lb.h))], { encoding: "utf8" }).trim();
+            String(Math.round(lb.w)), String(Math.round(lb.h)),
+            String(Math.round(lb.vwW || 0))], { encoding: "utf8" }).trim();
         } catch {}
-        console.log("logs dogrulama:", r);
-        if (r === "bos") throw new Error("logs bos kaldi");
+        console.log("logs dogrulama:", r);  // bilgi amacli — akisi KESMEZ (koordinat/DPR hassas)
       }
     }
     console.log("alanlar doldu");

@@ -195,6 +195,7 @@ export class RawCdp {
     for (const type of ["keyDown", "keyUp"]) {
       await this.call("Input.dispatchKeyEvent", {
         type, key: k, code, windowsVirtualKeyCode: keyCode, nativeVirtualKeyCode: keyCode, modifiers,
+        ...(k === "Enter" && type === "keyDown" ? { text: "\r" } : {}),  // textarea'da satir sonu
       });
       await sleep(60 + Math.random() * 80);
     }
