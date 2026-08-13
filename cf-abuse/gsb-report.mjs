@@ -169,6 +169,14 @@ async function attempt() {
     const html = await cdp.outerHTML("body").catch(() => "");
     const okk = /thank you|tesekkur|report has been|received|has been submitted|submission was successful/i.test(html);
     result = okk ? "submitted" : "submit-belirsiz";
+    if (!okk) {
+      const st = await cdp.call("Runtime.evaluate", {
+        expression: `(() => { const el=[...document.querySelectorAll('*')].find(e=>/status of submission/i.test(e.textContent)&&e.children.length<6); return el ? el.innerText.slice(0,180) : "status-kutusu-yok"; })()`,
+        returnByValue: true,
+      }).catch(() => null);
+      note = String(st?.result?.value ?? "").replace(/\s+/g, " ").slice(0, 160);
+      console.log("status:", note);
+    }
     console.log("sunucu cevabi:", result);
     await cdp.screenshot(`${SCRIPT_DIR}/evidence/gsb-final-${Date.now()}.jpg`);
     return result;
@@ -188,11 +196,12 @@ for (let att = 1; att <= 3; att++) {
   console.log(`--- deneme ${att}/3 ---`);
   note = "";
   const r = await attempt();
-  if (r !== "EXIT_DEAD" && r !== "error") { result = r; break; }
+  if (r !== "EXIT_DEAD" && r !== "error" && r !== "submit-belirsiz") { result = r; break; }
   result = r;
   if (att < 3) {
-    if (r === "EXIT_DEAD") {
-      console.log("exit olu — taze residential exit baglaniyor");
+    if (r === "EXIT_DEAD" || r === "submit-belirsiz") {
+      // belirsiz = genelde recaptcha skor red; cogu zaman exit IP reputasyonu
+      console.log("taze residential exit baglaniyor");
       const px = await genExit();
       if (px && (await assignExit(profile.id, px))) console.log("yeni exit bagli");
     }
