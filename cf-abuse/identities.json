@@ -1,12 +1,42 @@
 [
-  { "name": "Ahmet Yilmaz", "email": "ahmet.yilmaz.tr42@gmail.com" },
-  { "name": "Mehmet Demir", "email": "mehmetdemir.ist@gmail.com" },
-  { "name": "Ayse Kaya", "email": "ayse.kaya.tr@gmail.com" },
-  { "name": "Emre Sahin", "email": "emre.sahin.dev@gmail.com" },
-  { "name": "Fatma Celik", "email": "fatmacelik34@gmail.com" },
-  { "name": "Burak Ozturk", "email": "burak.ozturk06@gmail.com" },
-  { "name": "Zeynep Arslan", "email": "zeyneparslan.tr@gmail.com" },
-  { "name": "Can Dogan", "email": "can.dogan.tech@gmail.com" },
-  { "name": "Elif Kurt", "email": "elif.kurt.ank@gmail.com" },
-  { "name": "Murat Aydin", "email": "murat.aydin35@gmail.com" }
+  {
+    "name": "Ahmet Yilmaz",
+    "email": "ahmet.yilmaz.tr42@meridyendijital.com"
+  },
+  {
+    "name": "Mehmet Demir",
+    "email": "mehmetdemir.ist@meridyendijital.com"
+  },
+  {
+    "name": "Ayse Kaya",
+    "email": "ayse.kaya.tr@meridyendijital.com"
+  },
+  {
+    "name": "Emre Sahin",
+    "email": "emre.sahin.dev@meridyendijital.com"
+  },
+  {
+    "name": "Fatma Celik",
+    "email": "fatmacelik34@meridyendijital.com"
+  },
+  {
+    "name": "Burak Ozturk",
+    "email": "burak.ozturk06@meridyendijital.com"
+  },
+  {
+    "name": "Zeynep Arslan",
+    "email": "zeyneparslan.tr@meridyendijital.com"
+  },
+  {
+    "name": "Can Dogan",
+    "email": "can.dogan.tech@meridyendijital.com"
+  },
+  {
+    "name": "Elif Kurt",
+    "email": "elif.kurt.ank@meridyendijital.com"
+  },
+  {
+    "name": "Murat Aydin",
+    "email": "murat.aydin35@meridyendijital.com"
+  }
 ]
