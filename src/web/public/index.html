@@ -36,6 +36,7 @@
     <button data-view="sites">Siteler</button>
     <button data-view="profiles">Profiller</button>
     <button data-view="positions">Pozisyonlar</button>
+    <button data-view="reports">Şikayetler</button>
   </nav>
   <div class="eng-state">
     <span class="eng-dot" id="engDot"></span>
@@ -152,6 +153,40 @@
         <table class="t-table"><thead><tr>
           <th>site</th><th>keyword</th><th>cihaz</th><th>son pozisyon</th><th>trend (30 ölçüm)</th><th>ölçüm</th>
         </tr></thead><tbody id="posBody"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ ŞİKAYETLER ══ -->
+  <section class="view" id="view-reports">
+    <div class="t-card">
+      <div class="t-titlebar">
+        <div class="t-dots"><i></i><i></i><i></i></div>
+        <span class="t-title">root@pbd:~/ops$ ./abuse --new<span class="cursor">▊</span></span>
+      </div>
+      <div class="t-body">
+        <label class="f-label">sahte (phishing) url</label>
+        <input class="inp" id="cfTarget" placeholder="https://guncel.primebahis-tronline.cam/" style="width:100%" spellcheck="false">
+        <label class="f-label">resmi url</label>
+        <input class="inp" id="cfOfficial" placeholder="https://primebahis404.com/" style="width:100%" spellcheck="false">
+        <label class="f-label">marka</label>
+        <input class="inp" id="cfBrand" placeholder="Primebahis" style="width:260px" spellcheck="false">
+        <div style="margin-top:14px; display:flex; gap:10px; align-items:center">
+          <button class="btn solid" id="cfStart">$ ./report --fire</button>
+          <span class="muted" id="cfState"></span>
+        </div>
+        <div class="hint">motor otomatik: profil+kimlik rotasyonu, turnstile, kanit screenshot'lari. anlik akis Genel Bakis terminalinde.</div>
+      </div>
+    </div>
+    <div class="t-card">
+      <div class="t-titlebar">
+        <div class="t-dots"><i></i><i></i><i></i></div>
+        <span class="t-title">root@pbd:~/ops$ cat reports.jsonl<span class="cursor">▊</span></span>
+      </div>
+      <div class="t-body" style="padding:0; overflow-x:auto">
+        <table class="t-table"><thead><tr>
+          <th>zaman</th><th>hedef</th><th>marka</th><th>profil</th><th>kimlik</th><th>sonuc</th><th>süre</th>
+        </tr></thead><tbody id="cfBody"></tbody></table>
       </div>
     </div>
   </section>
