@@ -58,3 +58,10 @@
 {"ts":"2026-08-13T17:19:47.907Z","profile":"PBD-09","identity":"irem.yalcin.tr@meridyendijital.com","target":"https://herabet392.cam/","official":"https://herabet393.com/","brand":"herabet","result":"EXIT_DEAD","note":"Error: EXIT_DEAD","ms":336180}
 {"ts":"2026-08-13T17:21:44.800Z","profile":"PBD-10","identity":"volkanerdem.ist@meridyendijital.com","target":"https://herabet392.cam/","official":"https://herabet393.com/","brand":"herabet","result":"submitted","note":"","ms":96154}
 {"ts":"2026-08-13T17:27:57.116Z","profile":"PBD-09","identity":"irem.yalcin.tr@meridyendijital.com","target":"https://herabet392.cam/","official":"https://herabet393.com/","brand":"herabet","result":"submitted","note":"","ms":308037}
+{"ts":"2026-08-13T17:40:50.152Z","source":"gsb","profile":"PBD-01","target":"https://herabet392.cam/","result":"EXIT_DEAD","note":"Error: EXIT_DEAD","ms":198011}
+{"ts":"2026-08-13T17:50:19.604Z","source":"gsb","profile":"PBD-02","target":"https://herabet392.cam/","result":"error","note":"Error: recaptcha gecmedi (image challenge?)","ms":403784}
+{"ts":"2026-08-13T17:53:51.617Z","source":"gsb","profile":"PBD-03","target":"https://herabet392.cam/","result":"error","note":"Error: submit butonu yok","ms":84100}
+{"ts":"2026-08-13T17:57:29.984Z","source":"gsb","profile":"PBD-03","target":"https://herabet392.cam/","result":"submit-belirsiz","note":"","ms":46751}
+{"ts":"2026-08-13T18:00:56.115Z","source":"gsb","profile":"PBD-05","target":"https://herabet392.cam/","result":"submit-belirsiz","note":"","ms":63159}
+{"ts":"2026-08-13T18:03:48.121Z","source":"gsb","profile":"PBD-05","target":"https://herabet392.cam/","result":"submit-belirsiz","note":"","ms":29020}
+{"ts":"2026-08-13T18:06:04.069Z","source":"gsb","profile":"PBD-07","target":"https://herabet392.cam/","result":"submitted","note":"","ms":26691}
