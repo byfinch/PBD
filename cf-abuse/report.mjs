@@ -94,9 +94,9 @@ function reportText() {
   ];
   const body = "The reported website copies our logo, design, and content in an attempt to deceive users into believing it is our official website. Users may be tricked into submitting personal information and credentials.";
   const parts = [openers[Math.floor(Math.random() * openers.length)], body];
-  if (OFFICIAL) parts.push(`Official website: ${OFFICIAL}`);
-  parts.push(`Reported phishing website: ${TARGET}`);
-  return parts.join("\n\n");
+  if (OFFICIAL) parts.push(`Official website: ${OFFICIAL}.`);
+  parts.push(`Reported phishing website: ${TARGET}.`);
+  return parts.join(" ");  // textarea \n tusunu yutuyor — nokta+bosluk ile ayir
 }
 
 // ── ana akis ───────────────────────────────────────────────────────────────
@@ -238,13 +238,21 @@ async function attempt(attemptNo) {
     await cdp.key("Tab"); await sleep(150);  // title (bos)
     await cdp.key("Tab"); await sleep(150);  // company (bos)
     await cdp.key("Tab"); await sleep(150);  // telephone (bos)
-    await cdp.key("Tab"); await sleep(150);  // -> Evidence URLs
-    await cdp.typeText(TARGET, 15);          // Evidence URLs
-    await cdp.key("Tab"); await sleep(250);   // Evidence -> Logs
-    await cdp.typeText(reportText(), 8);      // Logs (zorunlu)
-    await cdp.key("Tab"); await sleep(250);   // Logs -> Brand
-    if (BRAND) await cdp.typeText(BRAND + (OFFICIAL ? ` (${OFFICIAL})` : ""), 15);
-    console.log("alanlar doldu (tam zincir)");
+    // textarealari aria-label ile hedefle (DOM sirasi gorsel sira degil —
+    // kör index yanlis alana kayiyordu). fallback: index.
+    const evOk = (await cdp.clickSelector('[aria-label="Evidence URLs"]', 12))
+      || (await cdp.clickSelectorAt("textarea", 0));
+    if (!evOk) throw new Error("evidence textarea yok");
+    await sleep(300);
+    await cdp.typeText(TARGET, 15);
+    const lgOk = (await cdp.clickSelector('[aria-label="Logs or other evidence of abuse"]', 12))
+      || (await cdp.clickSelectorAt("textarea", 1));
+    if (!lgOk) throw new Error("logs textarea yok");
+    await sleep(300);
+    await cdp.typeText(reportText(), 30);     // Logs (zorunlu) — yavas: hizli char event yutuluyor
+    await cdp.box('[aria-label="Logs or other evidence of abuse"]');  // kadraja geri kaydir
+    await cdp.screenshot(`${SCRIPT_DIR}/evidence/logs-check-${Date.now()}.jpg`);
+    console.log("alanlar doldu (dogrudan hedefli)");
   }
 
   // DSA — once sayfa dibine don (widget kadraja girsin), sonra odakla

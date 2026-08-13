@@ -76,12 +76,18 @@ export class RawCdp {
    *  getBoxModel sayfa-koordinat dondurur; Input viewport ister — fark
    *  Page.getLayoutMetrics uzerinden dusulur (Runtime'suz scroll okuma). */
   async box(selector) {
+    return this.boxAt(selector, 0);
+  }
+
+  /** selector'un index'inci eslesmesi (querySelectorAll sirasi). */
+  async boxAt(selector, index = 0) {
     const doc = await this.call("DOM.getDocument", { depth: -1 });
-    const q = await this.call("DOM.querySelector", { nodeId: doc.root.nodeId, selector });
-    if (!q.nodeId) return null;
+    const q = await this.call("DOM.querySelectorAll", { nodeId: doc.root.nodeId, selector });
+    const nodeId = q.nodeIds?.[index];
+    if (!nodeId) return null;
     const read = async () => {
       const lm = await this.call("Page.getLayoutMetrics", {}).catch(() => null);
-      const bm = await this.call("DOM.getBoxModel", { nodeId: q.nodeId }).catch(() => null);
+      const bm = await this.call("DOM.getBoxModel", { nodeId }).catch(() => null);
       if (!bm?.model) return null;
       const vw = lm?.visualViewport;
       const sx = vw?.pageX ?? 0;
@@ -89,12 +95,12 @@ export class RawCdp {
       const c = bm.model.content;
       return {
         x: c[0] - sx, y: c[1] - sy, w: c[2] - c[0], h: c[5] - c[1],
-        nodeId: q.nodeId, vwW: vw?.clientWidth ?? 0, vwH: vw?.clientHeight ?? 0,
+        nodeId, vwW: vw?.clientWidth ?? 0, vwH: vw?.clientHeight ?? 0,
       };
     };
     // scrollIntoViewIfNeeded + settle; viewport disindaysa yeniden kaydir/oku
     for (let i = 0; i < 3; i++) {
-      await this.cdp("DOM.scrollIntoViewIfNeeded", { nodeId: q.nodeId }).catch(() => {});
+      await this.cdp("DOM.scrollIntoViewIfNeeded", { nodeId }).catch(() => {});
       await new Promise((s) => setTimeout(s, 900));
       const b = await read();
       if (!b) return null;
@@ -164,10 +170,19 @@ export class RawCdp {
     return true;
   }
 
+  /** selector'un index'inci eslesmesine tikla (textarea listesi icin). */
+  async clickSelectorAt(selector, index, offsetX = 12, offsetY = null) {
+    const b = await this.boxAt(selector, index);
+    if (!b) return false;
+    await this.click(b.x + offsetX, offsetY ?? b.y + Math.min(b.h / 2, 14));
+    return true;
+  }
+
   async typeText(text, delayMs = 35) {
     // char event: gercek tus basimi gibi — insertText'in takildigi
     // (contenteditable/React-controlled) alanlarda da isler.
     for (const ch of text) {
+      if (ch === "\n") { await this.key("Enter"); continue; }  // char-event \n yutulur
       await this.call("Input.dispatchKeyEvent", { type: "char", text: ch });
       await sleep(delayMs + Math.random() * delayMs);
     }
