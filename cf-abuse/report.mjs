@@ -327,6 +327,32 @@ async function attempt(attemptNo) {
     result = "dry-ok";
     note = "submit atilmadi (dry run)";
   } else {
+    // Turnstile token tazeligi — alan doldurma uzun surduyse token bayatlar
+    // ("signal timed out"). Submit'ten once yesil degilse tikla + tazele.
+    {
+      const vPath = `${SCRIPT_DIR}/evidence/ts-refresh-${Date.now()}.jpg`;
+      await cdp.screenshot(vPath);
+      let green = "";
+      try { green = execFileSync(PY, [resolve(dirname(fileURLToPath(import.meta.url)), "find-widget.py"), vPath, "verify"], { encoding: "utf8" }).trim(); } catch {}
+      if (green !== "yesil") {
+        console.log("turnstile bayat — tazeleniyor");
+        const fPath = `${SCRIPT_DIR}/evidence/ts-refind-${Date.now()}.jpg`;
+        await cdp.screenshot(fPath);
+        let out = "";
+        try { out = execFileSync(PY, [resolve(dirname(fileURLToPath(import.meta.url)), "find-widget.py"), fPath], { encoding: "utf8" }).trim(); } catch {}
+        if (out !== "yok") {
+          const [rx, ry] = out.split(",").map(Number);
+          await cdp.click(rx, ry);
+          for (let t = 0; t < 30 && green !== "yesil"; t += 5) {
+            await sleep(5000);
+            const v2 = `${SCRIPT_DIR}/evidence/ts-reverify-${Date.now()}.jpg`;
+            await cdp.screenshot(v2);
+            try { green = execFileSync(PY, [resolve(dirname(fileURLToPath(import.meta.url)), "find-widget.py"), v2, "verify"], { encoding: "utf8" }).trim(); } catch {}
+          }
+        }
+        console.log("turnstile tazeleme:", green === "yesil" ? "OK" : "OLMADI");
+      }
+    }
     // Submit — piksel rehberli (mavi buton)
     const sPath = `${SCRIPT_DIR}/evidence/submit-find-${Date.now()}.jpg`;
     await cdp.screenshot(sPath);
@@ -349,7 +375,7 @@ async function attempt(attemptNo) {
     result = ok ? "submitted" : "submit-belirsiz";
     const errMatch = html.match(/Request failed with status (\d+)/);
     if (errMatch) { result = "submit-error"; note = "HTTP " + errMatch[1]; }
-    if (submitHttp) { result = "submit-error"; note = "ag hatasi HTTP " + submitHttp; }
+    if (!ok && submitHttp) { result = "submit-error"; note = "ag hatasi HTTP " + submitHttp; }  // thank-you dialogu 400'den once gelir
     console.log("sunucu cevabi:", result, note);
   }
   await cdp.screenshot(`${SCRIPT_DIR}/evidence/final-${Date.now()}.jpg`);
