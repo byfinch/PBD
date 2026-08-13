@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CF://ABUSE</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13' fill='%2300ff41'>▊</text></svg>">
+<style>
+:root{--bg:#000;--surface:rgba(2,10,4,.8);--text:#e5e5e5;--soft:#9ca3af;--dim:#6b7280;--ghost:#4b5563;--faint:#3f3f46;--host:#bbf7d0;--acc:#00ff41;--acc2:#00d4ff;--warn:#fbbf24;--fail:#ff5c5c;--border:rgba(0,255,65,.25);--mono:'Courier New',ui-monospace,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12px;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;background:linear-gradient(rgba(0,255,65,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,65,.04) 1px,transparent 1px);background-size:42px 42px}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,255,65,.015) 0 1px,transparent 1px 3px);z-index:999}
+@keyframes blink{50%{opacity:0}}
+@keyframes pulse{50%{opacity:.35}}
+.top{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:14px;padding:10px 20px;background:rgba(0,0,0,.92);border-bottom:1px solid var(--border)}
+.brand{color:var(--acc);font-size:15px;font-weight:700;letter-spacing:2px;text-shadow:0 0 8px rgba(0,255,65,.5)}
+.brand .cursor{animation:blink 1s steps(1) infinite}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ghost)}
+.dot.on{background:var(--acc);box-shadow:0 0 8px rgba(0,255,65,.5);animation:pulse 1.4s infinite}
+.wrap{max-width:900px;margin:0 auto;padding:24px 20px 60px;position:relative;z-index:1}
+.card{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:4px;box-shadow:0 0 40px rgba(0,255,65,.06);margin-bottom:20px;overflow:hidden}
+.tbar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);background:rgba(0,255,65,.03)}
+.tbar .t{color:var(--soft);font-size:11px;letter-spacing:1px}
+.tbar .cursor{animation:blink 1s steps(1) infinite;color:var(--acc)}
+.dots{display:flex;gap:5px}.dots i{width:9px;height:9px;border-radius:50%}
+.dots i:nth-child(1){background:#f87171}.dots i:nth-child(2){background:#fbbf24}.dots i:nth-child(3){background:#00ff41}
+.body{padding:14px}
+label{display:block;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--ghost);margin:10px 0 4px}
+label::before{content:'> ';color:rgba(0,255,65,.5)}
+.inp{width:100%;background:#000;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:8px 10px;border-radius:2px;outline:none}
+.inp:focus{box-shadow:0 0 12px rgba(0,255,65,.3);border-color:var(--acc)}
+.btn{background:none;border:1px solid var(--border);color:var(--acc);font-family:var(--mono);font-size:11px;letter-spacing:1px;padding:8px 16px;cursor:pointer;border-radius:2px;text-transform:uppercase;transition:all .2s}
+.btn:hover{background:rgba(0,255,65,.06);box-shadow:0 0 12px rgba(0,255,65,.25)}
+.btn.solid{background:var(--acc);color:#000;font-weight:700}
+.btn:disabled{opacity:.3;cursor:default}
+.hint{color:var(--faint);font-size:9px;margin-top:8px}.hint::before{content:'# '}
+.log{font-size:11px;line-height:1.7;max-height:260px;overflow-y:auto;color:var(--soft)}
+.log .t{color:var(--faint);margin-right:8px}
+.log .ok{color:var(--acc)}.log .err{color:var(--fail)}.log .cmd{color:var(--acc2)}
+.log::-webkit-scrollbar{width:6px}.log::-webkit-scrollbar-thumb{background:var(--border)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;font-size:10px;font-weight:400;color:rgba(0,255,65,.5);letter-spacing:1px;text-transform:uppercase;padding:6px 10px;border-bottom:1px solid var(--border)}
+th::before{content:'> '}
+td{padding:7px 10px;border-bottom:1px dashed rgba(0,255,65,.1);color:var(--soft)}
+.host{color:var(--host)}
+.chip{display:inline-block;padding:2px 8px;border:1px solid var(--border);background:rgba(0,255,65,.06);color:var(--acc);border-radius:2px;font-size:10px;letter-spacing:1px}
+.chip.amber{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.07);color:var(--warn)}
+.chip.red{border-color:rgba(255,45,45,.45);background:rgba(255,45,45,.08);color:var(--fail)}
+.chip.cyan{border-color:rgba(0,212,255,.35);background:rgba(0,212,255,.07);color:var(--acc2)}
+.chip.gray{border-color:rgba(255,255,255,.12);color:var(--dim)}
+.login{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.85)}
+.login .card{width:340px}
+.lerr{color:var(--fail);font-size:10px;margin-top:10px;min-height:14px}.lerr::before{content:'[ERR] '}
+</style>
+</head>
+<body>
+
+<div class="login" id="loginWrap" style="display:none">
+  <div class="card">
+    <div class="tbar"><div class="dots"><i></i><i></i><i></i></div><span class="t">root@cf:~/abuse$ ./login<span class="cursor">▊</span></span></div>
+    <div class="body">
+      <label>kullanıcı</label><input class="inp" id="lu" autocomplete="username">
+      <label>parola</label><input class="inp" id="lp" type="password" autocomplete="current-password">
+      <div style="margin-top:14px"><button class="btn solid" id="lbtn" style="width:100%">$ ./connect</button></div>
+      <div class="lerr" id="lerr"></div>
+    </div>
+  </div>
+</div>
+
+<header class="top">
+  <div class="brand">CF://ABUSE<span class="cursor">▊</span></div>
+  <span class="dot" id="runDot"></span><span class="hint" id="runState" style="margin:0">idle</span>
+  <span style="flex:1"></span>
+  <button class="btn" id="logout">ÇIKIŞ</button>
+</header>
+
+<main class="wrap">
+  <div class="card">
+    <div class="tbar"><div class="dots"><i></i><i></i><i></i></div><span class="t">root@cf:~/abuse$ ./report --new<span class="cursor">▊</span></span></div>
+    <div class="body">
+      <label>sahte (phishing) url</label>
+      <input class="inp" id="t" placeholder="https://guncel.primebahis-tronline.cam/" spellcheck="false">
+      <label>resmi url</label>
+      <input class="inp" id="o" placeholder="https://primebahis404.com/" spellcheck="false">
+      <label>marka</label>
+      <input class="inp" id="b" placeholder="Primebahis" style="max-width:280px" spellcheck="false">
+      <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
+        <button class="btn solid" id="fire">$ ./report --fire</button>
+        <span class="hint" id="fireState" style="margin:0"></span>
+      </div>
+      <div class="hint">metin sablonu otomatik; profil + kimlik + turnstile + kanit motor halleder</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tbar"><div class="dots"><i></i><i></i><i></i></div><span class="t">root@cf:~/abuse$ tail -f live.log<span class="cursor">▊</span></span></div>
+    <div class="body"><div class="log" id="log"><span class="hint">baglaniyor…</span></div></div>
+  </div>
+
+  <div class="card">
+    <div class="tbar"><div class="dots"><i></i><i></i><i></i></div><span class="t">root@cf:~/abuse$ cat reports.jsonl<span class="cursor">▊</span></span></div>
+    <div class="body" style="padding:0;overflow-x:auto">
+      <table><thead><tr><th>zaman</th><th>hedef</th><th>marka</th><th>profil</th><th>kimlik</th><th>sonuc</th><th>süre</th></tr></thead>
+      <tbody id="rows"></tbody></table>
+    </div>
+  </div>
+</main>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(path, body) {
+  const r = await fetch(path, body ? { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) } : undefined);
+  if (r.status === 401) { $('#loginWrap').style.display = 'flex'; throw new Error('auth'); }
+  return r.json();
+}
+async function doLogin() {
+  const r = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ u: $('#lu').value.trim(), p: $('#lp').value }) });
+  if (r.ok) { $('#loginWrap').style.display = 'none'; boot(); } else $('#lerr').textContent = 'erişim reddedildi';
+}
+$('#lbtn').addEventListener('click', doLogin);
+$('#lp').addEventListener('keydown', (e) => e.key === 'Enter' && doLogin());
+$('#logout').addEventListener('click', async () => { await fetch('/api/logout', { method: 'POST' }); location.reload(); });
+
+const fmt = (iso) => iso ? new Date(iso).toLocaleString('tr-TR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—';
+const chip = (r) => {
+  const map = { submitted:['','GÖNDERİLDİ'], dedupe:['amber','DEDUPE'], 'submit-error':['red','HATA'], error:['red','HATA'], 'dry-ok':['cyan','DRY'], EXIT_DEAD:['red','EXIT ÖLDÜ'] };
+  const [c, l] = map[r] ?? ['gray', r];
+  return `<span class="chip ${c}">${l}</span>`;
+};
+
+async function poll() {
+  try {
+    const d = await api('/api/state');
+    $('#runDot').classList.toggle('on', !!d.running);
+    $('#runState').textContent = d.running ? 'calisiyor: ' + d.running : 'idle';
+    const log = $('#log');
+    const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+    log.innerHTML = (d.activity ?? []).map((a) => {
+      let cls = '';
+      if (/HATA|FAIL|degil|tutmadi/i.test(a.text)) cls = 'err';
+      else if (/GECTI|submitted|isaretlendi|doldu/i.test(a.text)) cls = 'ok';
+      else if (/^>>/.test(a.text)) cls = 'cmd';
+      return `<div><span class="t">${new Date(a.ts).toLocaleTimeString('tr-TR')}</span><span class="${cls}">${esc(a.text)}</span></div>`;
+    }).join('') || '<span class="hint"># henüz aktivite yok</span>';
+    if (atBottom) log.scrollTop = log.scrollHeight;
+    $('#rows').innerHTML = (d.reports ?? []).map((r) => `
+      <tr><td class="hint" style="margin:0">${fmt(r.ts)}</td><td class="host">${esc((r.target||'').slice(0,42))}</td><td>${esc(r.brand||'—')}</td>
+      <td class="hint" style="margin:0">${esc(r.profile||'')}</td><td class="hint" style="margin:0">${esc((r.identity||'').split('@')[0])}</td>
+      <td>${chip(r.result)}</td><td class="hint" style="margin:0">${r.ms ? Math.round(r.ms/1000)+'sn' : '—'}</td></tr>`).join('') || '<tr><td colspan="7" class="hint" style="padding:12px"># rapor yok</td></tr>';
+  } catch (e) {}
+}
+
+$('#fire').addEventListener('click', async () => {
+  const target = $('#t').value.trim(), official = $('#o').value.trim(), brand = $('#b').value.trim();
+  if (!target || !official) return alert('sahte url + resmi url gerekli');
+  const r = await api('/api/report', { target, official, brand });
+  if (r.error) return alert(r.error);
+  poll();
+});
+
+function boot() { poll(); setInterval(poll, 3000); }
+fetch('/api/state').then((r) => (r.status === 401 ? ($('#loginWrap').style.display = 'flex') : boot())).catch(() => $('#loginWrap').style.display = 'flex');
+</script>
+</body>
+</html>

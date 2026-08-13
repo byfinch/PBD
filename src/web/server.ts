@@ -6,8 +6,6 @@ import express from "express";
 import type { AppConfig } from "../config.js";
 import type { Store } from "../store/db.js";
 import { Engine, recentActivity, effectiveSitesList, logActivity } from "../engine.js";
-import { spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
 import { quotaForDay, dayIndexFor } from "../calendar/ramp.js";
 import { measureAllPositions } from "../rank/tracker.js";
 import { logger } from "../logger.js";
@@ -210,50 +208,6 @@ export function startPanel(deps: PanelDeps): void {
       logger.info({ measured: results.length }, "manual track pass done");
     })();
     res.json({ started: true });
-  });
-
-  // ── sikayet motoru (cf-abuse) ───────────────────────────────────────────
-  const cfDir = resolve(__dirname, "../../cf-abuse");
-  const cfLog = resolve(cfDir, "reports.jsonl");
-  let cfRunning: string | null = null;
-
-  app.post("/api/cf-report", (req, res) => {
-    if (cfRunning) {
-      res.status(409).json({ error: `zaten calisiyor: ${cfRunning}` });
-      return;
-    }
-    const { target, official, brand } = (req.body ?? {}) as { target?: string; official?: string; brand?: string };
-    if (!target || !official) {
-      res.status(400).json({ error: "sahte url + resmi url gerekli" });
-      return;
-    }
-    cfRunning = target;
-    logActivity(`>> sikayet basladi: ${target} (${brand || "-"})`);
-    const args = [
-      resolve(cfDir, "report.mjs"),
-      "--target", target,
-      "--official", official,
-      "--brand", brand ?? "",
-    ];
-    const ch = spawn("node", args, { cwd: cfDir });
-    ch.stdout.on("data", (d) => String(d).split("\n").filter(Boolean).forEach((l: string) => logActivity("[cf] " + l.trim())));
-    ch.stderr.on("data", (d) => String(d).split("\n").filter(Boolean).forEach((l: string) => logActivity("[cf!] " + l.trim().slice(0, 120))));
-    ch.on("close", () => {
-      logActivity(`>> sikayet bitti: ${target}`);
-      cfRunning = null;
-    });
-    res.json({ started: true, target });
-  });
-
-  app.get("/api/cf-reports", (_req, res) => {
-    const rows: unknown[] = [];
-    if (existsSync(cfLog)) {
-      for (const line of readFileSync(cfLog, "utf8").split("\n")) {
-        if (!line.trim()) continue;
-        try { rows.push(JSON.parse(line)); } catch {}
-      }
-    }
-    res.json({ running: cfRunning, reports: rows.reverse().slice(0, 100) });
   });
 
   // ── positions / health ──────────────────────────────────────────────────

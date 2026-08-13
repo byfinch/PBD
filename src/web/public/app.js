@@ -63,7 +63,6 @@ function refreshView() {
   if (currentView === 'sites') loadSites();
   if (currentView === 'profiles') loadProfiles();
   if (currentView === 'positions') loadPositions();
-  if (currentView === 'reports') { loadCfReports(); pollTimer = setInterval(loadCfReports, 4000); }
 }
 
 // ── yardımcılar ────────────────────────────────────────────────────────────
@@ -357,38 +356,6 @@ function sparkline(pts) {
 $('#trackBtn').addEventListener('click', async () => {
   await api('/api/track', { method: 'POST' });
   alert('ölçüm turu başladı — birkaç dakika sonra bu tabloyu yenile');
-});
-
-// ── ŞİKAYETLER ─────────────────────────────────────────────────────────────
-async function loadCfReports() {
-  const data = await api('/api/cf-reports');
-  $('#cfState').textContent = data.running ? `calisiyor: ${data.running}` : '';
-  const chip = (r) => {
-    const map = { submitted: ['', 'GÖNDERİLDİ'], dedupe: ['amber', 'DEDUPE'], 'submit-error': ['red', 'HATA'], error: ['red', 'HATA'], 'dry-ok': ['cyan', 'DRY'], EXIT_DEAD: ['red', 'EXIT ÖLDÜ'] };
-    const [cls, label] = map[r] ?? ['gray', r];
-    return `<span class="chip ${cls}">${label}</span>`;
-  };
-  $('#cfBody').innerHTML = (data.reports ?? []).map((r) => `
-    <tr>
-      <td class="dim">${fmtDateTime(r.ts)}</td>
-      <td class="host">${esc((r.target || '').slice(0, 45))}</td>
-      <td>${esc(r.brand || '—')}</td>
-      <td class="dim">${esc(r.profile || '')}</td>
-      <td class="dim">${esc((r.identity || '').split('@')[0])}</td>
-      <td>${chip(r.result)}</td>
-      <td class="dim">${r.ms ? Math.round(r.ms / 1000) + 'sn' : '—'}</td>
-    </tr>`).join('') || '<tr><td colspan="7" class="dim" style="padding:14px"># henüz rapor yok</td></tr>';
-}
-
-$('#cfStart').addEventListener('click', async () => {
-  const target = $('#cfTarget').value.trim();
-  const official = $('#cfOfficial').value.trim();
-  const brand = $('#cfBrand').value.trim();
-  if (!target || !official) return alert('sahte url + resmi url gerekli');
-  const r = await api('/api/cf-report', { method: 'POST', body: JSON.stringify({ target, official, brand }) });
-  if (r.error) return alert(r.error);
-  $('#cfState').textContent = 'calisiyor: ' + target;
-  loadCfReports();
 });
 
 // ── boot ───────────────────────────────────────────────────────────────────
