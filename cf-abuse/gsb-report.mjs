@@ -183,7 +183,8 @@ async function attempt() {
       console.log("status:", note);
     }
     console.log("sunucu cevabi:", result);
-    await cdp.screenshot(`${SCRIPT_DIR}/evidence/kanit-result-${Date.now()}.jpg`);
+    // KANIT 2: status kutusu formun altinda — tam sayfa cek (form submit sonrasi sifirlanir)
+    await cdp.screenshot(`${SCRIPT_DIR}/evidence/kanit-result-${Date.now()}.jpg`, 70, true);
     return result;
   } catch (err) {
     note = String(err).slice(0, 200);
