@@ -77,18 +77,17 @@ app.get("/api/state", (_req, res) => {
 
 app.post("/api/report", (req, res) => {
   if (running) return res.status(409).json({ error: `zaten calisiyor: ${running}` });
-  const { target, official, brand, channel, scope } = req.body ?? {};
+  const { target, official, brand, channel } = req.body ?? {};
   if (!target || !official) return res.status(400).json({ error: "sahte url + resmi url gerekli" });
   const ch0 = channel === "gsb" || channel === "cf" ? channel : "both";
-  const profiles = scope === "all"
-    ? JSON.parse(readFileSync(resolve(SCRIPT_DIR, "../config/profiles.json"), "utf8")).profiles.map((p) => p.name)
-    : [null];  // null = motor rastgele secer
+  // her zaman 10 profilin tamami, sirayla
+  const profiles = JSON.parse(readFileSync(resolve(SCRIPT_DIR, "../config/profiles.json"), "utf8")).profiles.map((p) => p.name);
   running = target;
-  log(`>> sikayet basladi [${ch0}, ${scope === "all" ? profiles.length + " profil" : "tek profil"}]: ${target} (${brand || "-"})`);
+  log(`>> sikayet basladi [${ch0}, ${profiles.length} profil]: ${target} (${brand || "-"})`);
   const jobs = [];
   for (const p of profiles) {
-    if (ch0 !== "gsb") jobs.push(["report.mjs", ["--target", target, "--official", official, "--brand", brand ?? "", ...(p ? ["--profile", p] : [])]]);
-    if (ch0 !== "cf") jobs.push(["gsb-report.mjs", ["--target", target, ...(p ? ["--profile", p] : [])]]);
+    if (ch0 !== "gsb") jobs.push(["report.mjs", ["--target", target, "--official", official, "--brand", brand ?? "", "--profile", p]]);
+    if (ch0 !== "cf") jobs.push(["gsb-report.mjs", ["--target", target, "--profile", p]]);
   }
   // sirayla calistir — profiller/eszamanli cakisma olmasin
   const runNext = (i) => {
@@ -100,7 +99,7 @@ app.post("/api/report", (req, res) => {
     ch.on("close", () => setTimeout(() => runNext(i + 1), 8000));  // launcher nefes alsin
   };
   runNext(0);
-  res.json({ started: true, channel: ch0, scope: scope === "all" ? "all" : "single" });
+  res.json({ started: true, channel: ch0, profiles: profiles.length });
 });
 
 app.listen(PORT, () => console.log(`cf-abuse panel: http://localhost:${PORT} (${USER})`));

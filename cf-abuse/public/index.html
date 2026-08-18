@@ -176,13 +176,8 @@ tbody tr:last-child td{border-bottom:none}
               <option value="cf">Sadece Cloudflare</option>
               <option value="gsb">Sadece Safe Browsing</option>
             </select></div>
-          <div class="field"><label>Kapsam</label>
-            <select class="inp" id="sc">
-              <option value="single" selected>Tek profil (rastgele)</option>
-              <option value="all">Tüm profiller (10, sırayla)</option>
-            </select></div>
           <button class="fire" id="fire">Saldırıyı Başlat</button>
-          <div class="form-note">metin şablonu, profil + kimlik rotasyonu, turnstile ve kanıt toplama otomatiktir; red/dedupe durumunda taze kimlik + exit ile başarıya kadar tekrar dener</div>
+          <div class="form-note">10 profilin tamamı sırayla raporlar; metin şablonu, kimlik + exit rotasyonu, turnstile ve kanıt toplama otomatiktir. red/dedupe durumunda taze kimlikle başarıya kadar tekrar dener</div>
         </div>
       </div>
     </div>
@@ -367,9 +362,9 @@ async function poll() {
 }
 
 $('#fire').addEventListener('click', async () => {
-  const target = $('#t').value.trim(), official = $('#o').value.trim(), brand = $('#b').value.trim(), channel = $('#ch').value, scope = $('#sc').value;
+  const target = $('#t').value.trim(), official = $('#o').value.trim(), brand = $('#b').value.trim(), channel = $('#ch').value;
   if (!target || !official) return alert('sahte url + resmi url gerekli');
-  const r = await api('/api/report', { target, official, brand, channel, scope });
+  const r = await api('/api/report', { target, official, brand, channel });
   if (r.error) return alert(r.error);
   poll();
 });
