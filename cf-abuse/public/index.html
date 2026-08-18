@@ -3,158 +3,322 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CF://ABUSE</title>
+<title>CF://ABUSE — Operasyon Paneli</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13' fill='%2300ff41'>▊</text></svg>">
 <style>
-:root{--bg:#000;--surface:rgba(2,10,4,.8);--text:#e5e5e5;--soft:#9ca3af;--dim:#6b7280;--ghost:#4b5563;--faint:#3f3f46;--host:#bbf7d0;--acc:#00ff41;--acc2:#00d4ff;--warn:#fbbf24;--fail:#ff5c5c;--border:rgba(0,255,65,.25);--mono:'Courier New',ui-monospace,monospace}
+:root{
+  --bg:#050807;--surface:#0a0f0c;--surface2:#0d1310;
+  --border:#1c2b21;--border-acc:rgba(0,255,65,.35);
+  --text:#d7ded9;--soft:#8fa398;--dim:#5c6f64;--faint:#3a4a40;
+  --acc:#00e85c;--acc-dim:rgba(0,232,92,.12);
+  --cyan:#38c8e8;--warn:#e8b53a;--fail:#e85656;
+  --mono:'JetBrains Mono','Cascadia Code','Courier New',ui-monospace,monospace;
+}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12px;min-height:100vh}
-body::before{content:'';position:fixed;inset:0;pointer-events:none;background:linear-gradient(rgba(0,255,65,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,65,.04) 1px,transparent 1px);background-size:42px 42px}
-body::after{content:'';position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,255,65,.015) 0 1px,transparent 1px 3px);z-index:999}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;line-height:1.5}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;opacity:.5;
+  background:linear-gradient(rgba(0,232,92,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,232,92,.025) 1px,transparent 1px);
+  background-size:44px 44px}
+::selection{background:rgba(0,232,92,.25)}
 @keyframes blink{50%{opacity:0}}
-@keyframes pulse{50%{opacity:.35}}
-.top{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:14px;padding:10px 20px;background:rgba(0,0,0,.92);border-bottom:1px solid var(--border)}
-.brand{color:var(--acc);font-size:15px;font-weight:700;letter-spacing:2px;text-shadow:0 0 8px rgba(0,255,65,.5)}
-.brand .cursor{animation:blink 1s steps(1) infinite}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--ghost)}
-.dot.on{background:var(--acc);box-shadow:0 0 8px rgba(0,255,65,.5);animation:pulse 1.4s infinite}
-.wrap{max-width:900px;margin:0 auto;padding:24px 20px 60px;position:relative;z-index:1}
-.card{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:4px;box-shadow:0 0 40px rgba(0,255,65,.06);margin-bottom:20px;overflow:hidden}
-.tbar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);background:rgba(0,255,65,.03)}
-.tbar .t{color:var(--soft);font-size:11px;letter-spacing:1px}
-.tbar .cursor{animation:blink 1s steps(1) infinite;color:var(--acc)}
-.dots{display:flex;gap:5px}.dots i{width:9px;height:9px;border-radius:50%}
-.dots i:nth-child(1){background:#f87171}.dots i:nth-child(2){background:#fbbf24}.dots i:nth-child(3){background:#00ff41}
-.body{padding:14px}
-label{display:block;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--ghost);margin:10px 0 4px}
-label::before{content:'> ';color:rgba(0,255,65,.5)}
-.inp{width:100%;background:#000;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:8px 10px;border-radius:2px;outline:none}
-.inp:focus{box-shadow:0 0 12px rgba(0,255,65,.3);border-color:var(--acc)}
-.btn{background:none;border:1px solid var(--border);color:var(--acc);font-family:var(--mono);font-size:11px;letter-spacing:1px;padding:8px 16px;cursor:pointer;border-radius:2px;text-transform:uppercase;transition:all .2s}
-.btn:hover{background:rgba(0,255,65,.06);box-shadow:0 0 12px rgba(0,255,65,.25)}
-.btn.solid{background:var(--acc);color:#000;font-weight:700}
-.btn:disabled{opacity:.3;cursor:default}
-.hint{color:var(--faint);font-size:9px;margin-top:8px}.hint::before{content:'# '}
-.log{font-size:11px;line-height:1.7;max-height:260px;overflow-y:auto;color:var(--soft)}
-.log .t{color:var(--faint);margin-right:8px}
-.log .ok{color:var(--acc)}.log .err{color:var(--fail)}.log .cmd{color:var(--acc2)}
-.log::-webkit-scrollbar{width:6px}.log::-webkit-scrollbar-thumb{background:var(--border)}
+@keyframes pulse{50%{opacity:.3}}
+
+/* ── üst bar ── */
+.top{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:16px;height:52px;padding:0 24px;
+  background:rgba(5,8,7,.95);border-bottom:1px solid var(--border);backdrop-filter:blur(6px)}
+.brand{color:var(--acc);font-size:14px;font-weight:700;letter-spacing:3px}
+.brand small{color:var(--dim);font-weight:400;letter-spacing:1px;margin-left:10px;font-size:10px}
+.status{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--soft)}
+.status .dot{width:8px;height:8px;border-radius:50%;background:var(--faint)}
+.status.on .dot{background:var(--acc);box-shadow:0 0 8px rgba(0,232,92,.7);animation:pulse 1.5s infinite}
+.status.on{color:var(--acc)}
+.top .spacer{flex:1}
+.logout{background:none;border:1px solid var(--border);color:var(--dim);font:inherit;font-size:10px;letter-spacing:2px;
+  padding:6px 14px;cursor:pointer;border-radius:3px;text-transform:uppercase;transition:.15s}
+.logout:hover{color:var(--fail);border-color:rgba(232,86,86,.4)}
+
+/* ── yerleşim ── */
+.wrap{max-width:1180px;margin:0 auto;padding:28px 24px 64px;position:relative;z-index:1}
+.grid{display:grid;grid-template-columns:400px 1fr;gap:20px;align-items:start}
+@media(max-width:960px){.grid{grid-template-columns:1fr}}
+.col{display:flex;flex-direction:column;gap:20px}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.card-h{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.card-h h2{font-size:11px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--soft)}
+.card-h h2::before{content:'▸ ';color:var(--acc)}
+.card-b{padding:16px}
+
+/* ── form ── */
+.field{margin-bottom:14px}
+.field label{display:block;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+.inp{width:100%;background:#060a08;border:1px solid var(--border);color:var(--text);font:inherit;font-size:12.5px;
+  padding:9px 12px;border-radius:4px;outline:none;transition:border-color .15s, box-shadow .15s}
+.inp::placeholder{color:var(--faint)}
+.inp:focus{border-color:var(--border-acc);box-shadow:0 0 0 3px rgba(0,232,92,.08)}
+select.inp{appearance:none;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235c6f64' fill='none'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center}
+.fire{width:100%;margin-top:4px;background:var(--acc);border:none;color:#02130a;font:inherit;font-size:12px;font-weight:700;
+  letter-spacing:2.5px;text-transform:uppercase;padding:12px;cursor:pointer;border-radius:4px;transition:.15s}
+.fire:hover:not(:disabled){box-shadow:0 0 18px rgba(0,232,92,.35)}
+.fire:disabled{opacity:.35;cursor:not-allowed}
+.form-note{margin-top:12px;font-size:10px;color:var(--faint);line-height:1.6}
+.form-note::before{content:'# '}
+
+/* ── konsol ── */
+.console{font-size:11.5px;line-height:1.75;height:340px;overflow-y:auto;color:var(--soft);
+  background:#040705;padding:14px 16px}
+.console .row{display:flex;gap:10px;white-space:pre-wrap;word-break:break-word}
+.console .ts{color:var(--faint);flex-shrink:0}
+.console .ok{color:var(--acc)}.console .err{color:var(--fail)}.console .cmd{color:var(--cyan)}
+.console::-webkit-scrollbar{width:6px}
+.console::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ── tablo + sayfalama ── */
 table{width:100%;border-collapse:collapse;font-size:12px}
-th{text-align:left;font-size:10px;font-weight:400;color:rgba(0,255,65,.5);letter-spacing:1px;text-transform:uppercase;padding:6px 10px;border-bottom:1px solid var(--border)}
-th::before{content:'> '}
-td{padding:7px 10px;border-bottom:1px dashed rgba(0,255,65,.1);color:var(--soft)}
-.host{color:var(--host)}
-.chip{display:inline-block;padding:2px 8px;border:1px solid var(--border);background:rgba(0,255,65,.06);color:var(--acc);border-radius:2px;font-size:10px;letter-spacing:1px}
-.chip.amber{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.07);color:var(--warn)}
-.chip.red{border-color:rgba(255,45,45,.45);background:rgba(255,45,45,.08);color:var(--fail)}
-.chip.cyan{border-color:rgba(0,212,255,.35);background:rgba(0,212,255,.07);color:var(--acc2)}
-.chip.gray{border-color:rgba(255,255,255,.12);color:var(--dim)}
-.login{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.85)}
-.login .card{width:340px}
-.lerr{color:var(--fail);font-size:10px;margin-top:10px;min-height:14px}.lerr::before{content:'[ERR] '}
+thead th{text-align:left;font-size:9.5px;font-weight:600;color:var(--dim);letter-spacing:1.8px;text-transform:uppercase;
+  padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap}
+tbody td{padding:9px 14px;border-bottom:1px solid rgba(28,43,33,.6);color:var(--soft);vertical-align:middle}
+tbody tr:hover{background:rgba(0,232,92,.03)}
+tbody tr:last-child td{border-bottom:none}
+.t-host{color:#b8e6c8}
+.t-dim{color:var(--dim);white-space:nowrap}
+.chip{display:inline-block;padding:2px 9px;border:1px solid;border-radius:3px;font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;white-space:nowrap}
+.chip.ok{border-color:rgba(0,232,92,.4);background:var(--acc-dim);color:var(--acc)}
+.chip.warn{border-color:rgba(232,181,58,.4);background:rgba(232,181,58,.08);color:var(--warn)}
+.chip.fail{border-color:rgba(232,86,86,.45);background:rgba(232,86,86,.09);color:var(--fail)}
+.chip.info{border-color:rgba(56,200,232,.35);background:rgba(56,200,232,.07);color:var(--cyan)}
+.chip.plain{border-color:var(--border);color:var(--dim)}
+.pager{display:flex;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid var(--border);background:var(--surface2)}
+.pager .info{flex:1;font-size:10.5px;color:var(--dim);letter-spacing:1px}
+.pg{background:none;border:1px solid var(--border);color:var(--soft);font:inherit;font-size:11px;min-width:30px;height:28px;
+  padding:0 8px;cursor:pointer;border-radius:3px;transition:.15s}
+.pg:hover:not(:disabled){border-color:var(--border-acc);color:var(--acc)}
+.pg.cur{background:var(--acc-dim);border-color:var(--border-acc);color:var(--acc)}
+.pg:disabled{opacity:.3;cursor:default}
+
+/* ── kanıtlar ── */
+.ev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:14px 16px}
+.ev{position:relative;border:1px solid var(--border);border-radius:4px;overflow:hidden;cursor:zoom-in;background:#000;
+  aspect-ratio:4/3;transition:border-color .15s}
+.ev:hover{border-color:var(--border-acc)}
+.ev img{width:100%;height:100%;object-fit:cover;object-position:top;display:block;opacity:.85;transition:opacity .15s}
+.ev:hover img{opacity:1}
+.ev span{position:absolute;left:0;right:0;bottom:0;padding:4px 7px;font-size:9px;color:var(--soft);
+  background:linear-gradient(transparent,rgba(0,0,0,.9));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lightbox{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.9);cursor:zoom-out;padding:40px}
+.lightbox img{max-width:100%;max-height:100%;border:1px solid var(--border-acc);border-radius:6px}
+
+/* ── login ── */
+.login{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;background:rgba(3,5,4,.92)}
+.login .card{width:360px}
+.login .brand-lg{color:var(--acc);font-size:18px;font-weight:700;letter-spacing:4px;text-align:center;margin-bottom:4px}
+.login .sub{text-align:center;color:var(--dim);font-size:10px;letter-spacing:2px;margin-bottom:18px}
+.lerr{color:var(--fail);font-size:10.5px;margin-top:10px;min-height:16px}
+.lerr::before{content:'[ERR] '}
+.empty{padding:22px 14px;color:var(--faint);font-size:11px;text-align:center}
 </style>
 </head>
 <body>
 
-<div class="login" id="loginWrap" style="display:none">
+<!-- LOGIN -->
+<div class="login" id="loginWrap">
   <div class="card">
-    <div class="tbar"><div class="dots"><i></i><i></i><i></i></div><span class="t">root@cf:~/abuse$ ./login<span class="cursor">▊</span></span></div>
-    <div class="body">
-      <label>kullanıcı</label><input class="inp" id="lu" autocomplete="username">
-      <label>parola</label><input class="inp" id="lp" type="password" autocomplete="current-password">
-      <div style="margin-top:14px"><button class="btn solid" id="lbtn" style="width:100%">$ ./connect</button></div>
+    <div class="card-b">
+      <div class="brand-lg">CF://ABUSE</div>
+      <div class="sub">OPERASYON PANELİ</div>
+      <div class="field"><label>Kullanıcı</label><input class="inp" id="lu" autocomplete="username"></div>
+      <div class="field"><label>Parola</label><input class="inp" id="lp" type="password" autocomplete="current-password"></div>
+      <button class="fire" id="lbtn">Bağlan</button>
       <div class="lerr" id="lerr"></div>
     </div>
   </div>
 </div>
 
+<!-- TOP BAR -->
 <header class="top">
-  <div class="brand">CF://ABUSE<span class="cursor">▊</span></div>
-  <span class="dot" id="runDot"></span><span class="hint" id="runState" style="margin:0">idle</span>
-  <span style="flex:1"></span>
-  <button class="btn" id="logout">ÇIKIŞ</button>
+  <div class="brand">CF://ABUSE<small>RAPORLAMA OPERASYON PANELİ</small></div>
+  <div class="status" id="runState"><span class="dot"></span><span id="runText">idle</span></div>
+  <div class="spacer"></div>
+  <button class="logout" id="logout">Çıkış</button>
 </header>
 
 <main class="wrap">
-  <div class="card">
-    <div class="tbar"><div class="dots"><i></i><i></i><i></i></div><span class="t">root@cf:~/abuse$ ./report --new<span class="cursor">▊</span></span></div>
-    <div class="body">
-      <label>sahte (phishing) url</label>
-      <input class="inp" id="t" placeholder="https://guncel.primebahis-tronline.cam/" spellcheck="false">
-      <label>resmi url</label>
-      <input class="inp" id="o" placeholder="https://primebahis404.com/" spellcheck="false">
-      <label>marka</label>
-      <input class="inp" id="b" placeholder="Primebahis" style="max-width:280px" spellcheck="false">
-      <label>kanal</label>
-      <select class="inp" id="ch" style="max-width:280px">
-        <option value="both" selected>Cloudflare + Safe Browsing</option>
-        <option value="cf">sadece Cloudflare</option>
-        <option value="gsb">sadece Safe Browsing</option>
-      </select>
-      <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
-        <button class="btn solid" id="fire">$ ./report --fire</button>
-        <span class="hint" id="fireState" style="margin:0"></span>
+  <div class="grid">
+    <!-- SOL: saldırı başlat -->
+    <div class="col">
+      <div class="card">
+        <div class="card-h"><h2>Saldırı Başlat</h2></div>
+        <div class="card-b">
+          <div class="field"><label>Sahte (phishing) URL</label>
+            <input class="inp" id="t" placeholder="https://guncel.ornek-sahte.cam/" spellcheck="false"></div>
+          <div class="field"><label>Resmi URL</label>
+            <input class="inp" id="o" placeholder="https://ornek-resmi.com/" spellcheck="false"></div>
+          <div class="field"><label>Marka</label>
+            <input class="inp" id="b" placeholder="Marka adı" spellcheck="false"></div>
+          <div class="field"><label>Kanal</label>
+            <select class="inp" id="ch">
+              <option value="both" selected>Cloudflare + Safe Browsing</option>
+              <option value="cf">Sadece Cloudflare</option>
+              <option value="gsb">Sadece Safe Browsing</option>
+            </select></div>
+          <button class="fire" id="fire">Saldırıyı Başlat</button>
+          <div class="form-note">metin şablonu, profil + kimlik rotasyonu, turnstile ve kanıt toplama otomatiktir; red/dedupe durumunda taze kimlik + exit ile başarıya kadar tekrar dener</div>
+        </div>
       </div>
-      <div class="hint">metin sablonu otomatik; profil + kimlik + turnstile + kanit motor halleder. hata/dedupe'de kimlik+exit rotasyonu ile basariya kadar tekrar dener</div>
+
+      <!-- kanıtlar -->
+      <div class="card">
+        <div class="card-h"><h2>Kanıtlar</h2><span class="t-dim" id="evCount" style="font-size:10px"></span></div>
+        <div class="ev-grid" id="evGrid"><div class="empty"># kanıt yok</div></div>
+      </div>
+    </div>
+
+    <!-- SAĞ: konsol -->
+    <div class="col">
+      <div class="card">
+        <div class="card-h"><h2>Canlı Konsol</h2><span class="t-dim" style="font-size:10px" id="logCount"></span></div>
+        <div class="console" id="log"><div class="empty"># bağlanıyor…</div></div>
+      </div>
     </div>
   </div>
 
-  <div class="card">
-    <div class="tbar"><div class="dots"><i></i><i></i><i></i></div><span class="t">root@cf:~/abuse$ tail -f live.log<span class="cursor">▊</span></span></div>
-    <div class="body"><div class="log" id="log"><span class="hint">baglaniyor…</span></div></div>
-  </div>
-
-  <div class="card">
-    <div class="tbar"><div class="dots"><i></i><i></i><i></i></div><span class="t">root@cf:~/abuse$ cat reports.jsonl<span class="cursor">▊</span></span></div>
-    <div class="body" style="padding:0;overflow-x:auto">
-      <table><thead><tr><th>zaman</th><th>hedef</th><th>marka</th><th>profil</th><th>kimlik</th><th>sonuc</th><th>süre</th></tr></thead>
-      <tbody id="rows"></tbody></table>
+  <!-- ALT: geçmiş saldırılar -->
+  <div class="card" style="margin-top:20px">
+    <div class="card-h"><h2>Geçmiş Saldırılar</h2><span class="t-dim" style="font-size:10px" id="repCount"></span></div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr>
+          <th>Zaman</th><th>Kanal</th><th>Hedef</th><th>Marka</th><th>Profil</th><th>Kimlik</th><th>Sonuç</th><th>Süre</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
     </div>
+    <div class="pager" id="pager"></div>
   </div>
 </main>
 
+<div class="lightbox" id="lightbox"><img id="lightboxImg"></div>
+
 <script>
 const $ = (s) => document.querySelector(s);
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const PAGE_SIZE = 10;
+let page = 1, allReports = [];
+
 async function api(path, body) {
-  const r = await fetch(path, body ? { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) } : undefined);
+  const r = await fetch(path, {
+    method: body ? 'POST' : 'GET',
+    headers: body ? { 'Content-Type': 'application/json' } : {},
+    body: body ? JSON.stringify(body) : undefined,
+  });
   if (r.status === 401) { $('#loginWrap').style.display = 'flex'; throw new Error('auth'); }
   return r.json();
 }
+
 async function doLogin() {
-  const r = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ u: $('#lu').value.trim(), p: $('#lp').value }) });
-  if (r.ok) { $('#loginWrap').style.display = 'none'; boot(); } else $('#lerr').textContent = 'erişim reddedildi';
+  const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ u: $('#lu').value, p: $('#lp').value }) });
+  const j = await r.json();
+  if (j.ok) { $('#loginWrap').style.display = 'none'; $('#lerr').textContent = ''; boot(); }
+  else $('#lerr').textContent = 'yetkisiz erişim';
 }
 $('#lbtn').addEventListener('click', doLogin);
-$('#lp').addEventListener('keydown', (e) => e.key === 'Enter' && doLogin());
+$('#lp').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
 $('#logout').addEventListener('click', async () => { await fetch('/api/logout', { method: 'POST' }); location.reload(); });
 
-const fmt = (iso) => iso ? new Date(iso).toLocaleString('tr-TR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—';
-const chip = (r) => {
-  const map = { submitted:['','GÖNDERİLDİ'], dedupe:['amber','DEDUPE'], 'submit-error':['red','HATA'], error:['red','HATA'], 'dry-ok':['cyan','DRY'], EXIT_DEAD:['red','EXIT ÖLDÜ'] };
-  const [c, l] = map[r] ?? ['gray', r];
-  return `<span class="chip ${c}">${l}</span>`;
-};
+const fmtT = (iso) => { const d = new Date(iso); return d.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }); };
+
+function chip(result, source) {
+  const map = {
+    submitted: ['ok', 'BAŞARILI'], dedupe: ['warn', 'DEDUPE'],
+    'submit-error': ['fail', 'HATA'], error: ['fail', 'HATA'],
+    'submit-belirsiz': ['warn', 'BELİRSİZ'], EXIT_DEAD: ['fail', 'EXIT ÖLDÜ'], 'dry-ok': ['info', 'DRY'],
+  };
+  const [cls, label] = map[result] ?? ['plain', result || '?'];
+  return `<span class="chip ${cls}">${label}</span>`;
+}
+const chanChip = (s) => s === 'gsb'
+  ? '<span class="chip info">GSB</span>' : '<span class="chip plain">CF</span>';
+
+function renderTable() {
+  const total = allReports.length;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (page > pages) page = pages;
+  const slice = allReports.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  $('#repCount').textContent = total + ' kayıt';
+  $('#rows').innerHTML = slice.map((r) => `
+    <tr>
+      <td class="t-dim">${fmtT(r.ts)}</td>
+      <td>${chanChip(r.source)}</td>
+      <td class="t-host" title="${esc(r.target)}">${esc((r.target || '').replace(/^https?:\/\//, '').slice(0, 34))}</td>
+      <td>${esc(r.brand || '—')}</td>
+      <td class="t-dim">${esc(r.profile || '')}</td>
+      <td class="t-dim">${esc((r.identity || '').split('@')[0] || '—')}</td>
+      <td>${chip(r.result)}</td>
+      <td class="t-dim">${r.ms ? Math.round(r.ms / 1000) + 'sn' : '—'}</td>
+    </tr>`).join('') || '<tr><td colspan="8" class="empty"># henüz kayıt yok</td></tr>';
+
+  // sayfalama — akıllı pencere (1 … c-1 c c+1 … N)
+  const pg = $('#pager');
+  if (pages <= 1) { pg.innerHTML = `<span class="info">${total} kayıt</span>`; return; }
+  const items = [];
+  const add = (p, label = p, cur = false, dis = false) =>
+    items.push(`<button class="pg${cur ? ' cur' : ''}" data-p="${p}" ${dis ? 'disabled' : ''}>${label}</button>`);
+  add(page - 1, '‹', false, page === 1);
+  const win = new Set([1, pages, page - 1, page, page + 1]);
+  let last = 0;
+  for (let p = 1; p <= pages; p++) {
+    if (!win.has(p)) continue;
+    if (p - last > 1) items.push('<span style="color:var(--faint);padding:0 4px">…</span>');
+    add(p, p, p === page);
+    last = p;
+  }
+  add(page + 1, '›', false, page === pages);
+  pg.innerHTML = `<span class="info">sayfa ${page}/${pages} — ${total} kayıt</span>` + items.join('');
+  pg.querySelectorAll('.pg').forEach((b) => b.addEventListener('click', () => { page = Number(b.dataset.p); renderTable(); }));
+}
+
+function renderEvidence(ev) {
+  $('#evCount').textContent = (ev?.length ?? 0) + ' görsel';
+  $('#evGrid').innerHTML = (ev ?? []).map((e) => `
+    <div class="ev" data-url="${e.url}">
+      <img loading="lazy" src="${e.url}" alt="">
+      <span>${esc(e.name)}</span>
+    </div>`).join('') || '<div class="empty"># kanıt yok</div>';
+  document.querySelectorAll('.ev').forEach((el) => el.addEventListener('click', () => {
+    $('#lightboxImg').src = el.dataset.url;
+    $('#lightbox').style.display = 'flex';
+  }));
+}
+$('#lightbox').addEventListener('click', () => { $('#lightbox').style.display = 'none'; });
 
 async function poll() {
   try {
     const d = await api('/api/state');
-    $('#runDot').classList.toggle('on', !!d.running);
-    $('#runState').textContent = d.running ? 'calisiyor: ' + d.running : 'idle';
+    const on = !!d.running;
+    $('#runState').className = 'status' + (on ? ' on' : '');
+    $('#runText').textContent = on ? 'çalışıyor: ' + d.running.replace(/^https?:\/\//, '') : 'idle';
+    $('#fire').disabled = on;
+
     const log = $('#log');
     const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+    $('#logCount').textContent = (d.activity?.length ?? 0) + ' satır';
     log.innerHTML = (d.activity ?? []).map((a) => {
       let cls = '';
-      if (/HATA|FAIL|degil|tutmadi/i.test(a.text)) cls = 'err';
-      else if (/GECTI|submitted|isaretlendi|doldu/i.test(a.text)) cls = 'ok';
+      if (/HATA|FAIL|degil|tutmadi|OLMADI/i.test(a.text)) cls = 'err';
+      else if (/GECTI|submitted|isaretli|doldu|bagli/i.test(a.text)) cls = 'ok';
       else if (/^>>/.test(a.text)) cls = 'cmd';
-      return `<div><span class="t">${new Date(a.ts).toLocaleTimeString('tr-TR')}</span><span class="${cls}">${esc(a.text)}</span></div>`;
-    }).join('') || '<span class="hint"># henüz aktivite yok</span>';
+      return `<div class="row"><span class="ts">${new Date(a.ts).toLocaleTimeString('tr-TR')}</span><span class="${cls}">${esc(a.text)}</span></div>`;
+    }).join('') || '<div class="empty"># henüz aktivite yok</div>';
     if (atBottom) log.scrollTop = log.scrollHeight;
-    $('#rows').innerHTML = (d.reports ?? []).map((r) => `
-      <tr><td class="hint" style="margin:0">${fmt(r.ts)}</td><td class="host">${esc((r.target||'').slice(0,42))}</td><td>${esc(r.brand||'—')}</td>
-      <td class="hint" style="margin:0">${esc(r.profile||'')}</td><td class="hint" style="margin:0">${esc((r.identity||'').split('@')[0])}</td>
-      <td>${chip(r.result)}</td><td class="hint" style="margin:0">${r.ms ? Math.round(r.ms/1000)+'sn' : '—'}</td></tr>`).join('') || '<tr><td colspan="7" class="hint" style="padding:12px"># rapor yok</td></tr>';
+
+    const sig = JSON.stringify((d.reports ?? []).slice(0, 3).map((r) => r.ts)) + (d.reports?.length ?? 0);
+    if (sig !== poll._lastSig) { poll._lastSig = sig; allReports = d.reports ?? []; renderTable(); }
+    renderEvidence(d.evidence);
   } catch (e) {}
 }
 
@@ -167,7 +331,9 @@ $('#fire').addEventListener('click', async () => {
 });
 
 function boot() { poll(); setInterval(poll, 3000); }
-fetch('/api/state').then((r) => (r.status === 401 ? ($('#loginWrap').style.display = 'flex') : boot())).catch(() => $('#loginWrap').style.display = 'flex');
+fetch('/api/state')
+  .then((r) => (r.status === 401 ? ($('#loginWrap').style.display = 'flex') : boot()))
+  .catch(() => ($('#loginWrap').style.display = 'flex'));
 </script>
 </body>
 </html>

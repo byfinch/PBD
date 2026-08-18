@@ -4,7 +4,7 @@
  * Port: 3090 (env PANEL_PORT ile degisir). Login: PANEL_USER/PANEL_PASSWORD.
  */
 import { createHash, randomBytes } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
@@ -63,7 +63,16 @@ app.get("/api/state", (_req, res) => {
       try { reports.push(JSON.parse(line)); } catch {}
     }
   }
-  res.json({ running, activity: activity.slice(-60), reports: reports.reverse().slice(0, 200) });
+  const evDir = resolve(SCRIPT_DIR, "evidence");
+  const evidence = [];
+  if (existsSync(evDir)) {
+    for (const f of readdirSync(evDir)) {
+      if (!/\.(jpg|jpeg|png)$/i.test(f)) continue;
+      try { evidence.push({ name: f, url: "/evidence/" + f, mtime: statSync(resolve(evDir, f)).mtimeMs }); } catch {}
+    }
+    evidence.sort((a, b) => b.mtime - a.mtime);
+  }
+  res.json({ running, activity: activity.slice(-60), reports: reports.reverse().slice(0, 500), evidence: evidence.slice(0, 12) });
 });
 
 app.post("/api/report", (req, res) => {
