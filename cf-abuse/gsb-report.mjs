@@ -75,6 +75,8 @@ const DETAILS = [
   "This website is a phishing page impersonating a legitimate brand. It copies the official site's design and content to steal user credentials and personal information.",
   "Active phishing website. It imitates the official brand page and tricks users into entering their login credentials and personal data.",
   "Phishing scam site impersonating a well-known brand. The page replicates the official site to harvest user credentials.",
+  "Fraudulent clone of a legitimate brand's website. It deceives visitors into submitting account credentials and payment details.",
+  "This page impersonates an official brand website in order to phish users' login information and personal data.",
 ];
 
 const t0 = Date.now();

@@ -51,9 +51,17 @@ const mlxToken = (await (await uFetch("https://api.multilogin.com/user/signin", 
 const profile = args.profile
   ? mapping.profiles.find((x) => x.name === args.profile)
   : mapping.profiles[Math.floor(Math.random() * mapping.profiles.length)];
-const identity = args.identity
+let identity = args.identity
   ? identities.find((x) => x.email === args.identity) ?? identities[0]
   : identities[Math.floor(Math.random() * identities.length)];
+const usedIdentities = new Set([identity.email]);
+function freshIdentity() {
+  const kalan = identities.filter((x) => !usedIdentities.has(x.email));
+  if (!kalan.length) return null;
+  identity = kalan[Math.floor(Math.random() * kalan.length)];
+  usedIdentities.add(identity.email);
+  return identity;
+}
 
 async function genExit() {
   const r = await uFetch("https://profile-proxy.multilogin.com/v1/proxy/connection_url", {
@@ -85,15 +93,31 @@ async function lapi(path) {
   return (await r.json().catch(() => null))?.data;
 }
 
-// ── rapor metni parcalari (sablon + hafif varyasyon) ───────────────────────
+// ── rapor metni parcalari (genis varyasyon havuzu — kopya/yapistir deseni olmasin) ──
 function reportParts() {
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const openers = [
     "This website is impersonating our brand and operating a phishing scam.",
     "We are reporting an active phishing website impersonating our brand.",
     "This site is running a phishing scam by impersonating our brand.",
+    "I would like to report a fraudulent website that copies our brand and misleads users.",
+    "This page is a fake copy of our official website and is being used for phishing.",
+    "We detected a phishing site that unlawfully uses our brand identity.",
   ];
-  const body = "The reported website copies our logo, design, and content in an attempt to deceive users into believing it is our official website. Users may be tricked into submitting personal information and credentials.";
-  const parts = [openers[Math.floor(Math.random() * openers.length)] + " " + body];
+  const bodies = [
+    "The reported website copies our logo, design, and content in an attempt to deceive users into believing it is our official website. Users may be tricked into submitting personal information and credentials.",
+    "The page imitates our official site's layout, logo and texts. Visitors are misled into entering their account credentials and personal data, which are then harvested by the operators.",
+    "This fake website reproduces our brand's visual identity and content without authorization. Its purpose is to collect login details and personal information from unsuspecting users.",
+    "The operators of this site cloned our branding and page content to appear legitimate. Users who land on it risk handing over their credentials and payment information.",
+    "This is an unauthorized copy of our web presence. The site deceives visitors into thinking they are on the official page and attempts to steal their personal and financial data.",
+  ];
+  const closers = [
+    "Please investigate and take appropriate action as soon as possible.",
+    "We kindly ask you to review and take the necessary action against this abusive website.",
+    "Please review this report and suspend the fraudulent content.",
+    "We appreciate your prompt attention to this abuse report.",
+  ];
+  const parts = [pick(openers) + " " + pick(bodies) + " " + pick(closers)];
   if (OFFICIAL) parts.push(`Official website: ${OFFICIAL}`);
   parts.push(`Reported phishing website: ${TARGET}`);
   return parts;
@@ -282,43 +306,30 @@ async function attempt(attemptNo) {
         anchored = true;
       }
     } catch {}
-    let dsaOk = false;
-    for (let dTry = 1; dTry <= 3 && !dsaOk; dTry++) {
-      await cdp.key("Tab", 8);  // Shift+Tab
-      await sleep(400);
-      await cdp.key(" ");
-      await sleep(800);
+  }
+  // DSA — Comments alanindan ileri Tab (Shift YOK — Sticky Keys tetikliyordu).
+  // Zincir: Comments -> hosting -> hosting-sub -> owner -> owner-sub -> DSA.
+  // Disabled ara kutular atlanirsa 3 Tab'a duser; 3-6 arasi tara.
+  {
+    const dsaChecked = async () => {
       const doc = await cdp.call("DOM.getDocument", { depth: -1 });
       const q = await cdp.call("DOM.querySelectorAll", { nodeId: doc.root.nodeId, selector: "label" });
       for (const nid of q.nodeIds ?? []) {
         const html = (await cdp.call("DOM.getOuterHTML", { nodeId: nid })).outerHTML ?? "";
-        if (/DSA certification/i.test(html)) {
-          dsaOk = /data-state="checked"|aria-checked="true"/.test(html);
-          break;
-        }
+        if (/DSA certification/i.test(html)) return /data-state="checked"|aria-checked="true"/.test(html);
       }
-      console.log(`DSA deneme ${dTry} (anchor:${anchored}): ${dsaOk ? "isaretli" : "degil"}`);
-    }
-    if (!dsaOk) throw new Error("DSA isaretlenemedi");
-  }
-  // DSA — odak widget'ta; Shift+Tab = DSA checkbox'i, Space = isaretle
-  {
+      return false;
+    };
     let dsaOk = false;
-    for (let dTry = 1; dTry <= 3 && !dsaOk; dTry++) {
-      await cdp.key("Tab", 8);  // Shift+Tab
-      await sleep(400);
+    for (const n of [5, 3, 4, 6]) {
+      if (dsaOk) break;
+      if (!await cdp.focusSelector('[aria-label="Comments"]')) break;
+      await sleep(300);
+      for (let i = 0; i < n; i++) { await cdp.key("Tab"); await sleep(200); }
       await cdp.key(" ");
       await sleep(700);
-      const doc = await cdp.call("DOM.getDocument", { depth: -1 });
-      const q = await cdp.call("DOM.querySelectorAll", { nodeId: doc.root.nodeId, selector: "label" });
-      for (const nid of q.nodeIds ?? []) {
-        const html = (await cdp.call("DOM.getOuterHTML", { nodeId: nid })).outerHTML ?? "";
-        if (/DSA certification/i.test(html)) {
-          dsaOk = /data-state="checked"|aria-checked="true"/.test(html);
-          break;
-        }
-      }
-      console.log(`DSA klavye deneme ${dTry}: ${dsaOk ? "isaretli" : "degil"}`);
+      dsaOk = await dsaChecked();
+      console.log(`DSA (tab x${n}): ${dsaOk ? "isaretli" : "degil"}`);
     }
     if (!dsaOk) throw new Error("DSA isaretlenemedi");
   }
@@ -394,24 +405,25 @@ async function attempt(attemptNo) {
   }
 }
 
-// ── exit rotasyonlu ana dongu ──────────────────────────────────────────────
-for (let att = 1; att <= 3; att++) {
-  console.log(`--- deneme ${att}/3 ---`);
+// ── kimlik + exit rotasyonlu ana dongu (%100 hedefi: basariya kadar dene) ──
+const RETRYABLE = new Set(["EXIT_DEAD", "error", "dedupe", "submit-error", "submit-belirsiz"]);
+for (let att = 1; att <= 5; att++) {
+  console.log(`--- deneme ${att}/5 (${identity.email}) ---`);
   note = "";
   const r = await attempt(att);
-  if (r !== "EXIT_DEAD" && r !== "error") { result = r; break; }
   result = r;
-  if (att < 3) {
-    if (r === "EXIT_DEAD") {
-      console.log("exit olu — taze residential exit baglaniyor");
-      const px = await genExit();
-      if (px && (await assignExit(profile.id, px))) console.log("yeni exit bagli");
-      else console.log("exit uretilemedi — ayni exit ile devam");
-    } else {
-      console.log("hata — ayni exit ile bir kez daha denenecek");
-    }
-    await sleep(3000);
+  if (!RETRYABLE.has(r)) break;  // submitted / dry-ok
+  if (att >= 5) break;
+  // exit tarafi supheliyse ya da sunucu reddettiyse tazele
+  const px = await genExit();
+  if (px && (await assignExit(profile.id, px))) console.log("yeni exit bagli");
+  // sunucu tarafli redlerde kimligi degistir (dedupe/400/belirsiz)
+  if (r !== "EXIT_DEAD") {
+    const yeni = freshIdentity();
+    if (!yeni) { console.log("kimlik havuzu bitti"); break; }
+    console.log(`kimlik degisti -> ${yeni.email}`);
   }
+  await sleep(3000);
 }
 
 appendFileSync(

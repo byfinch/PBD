@@ -68,15 +68,25 @@ app.get("/api/state", (_req, res) => {
 
 app.post("/api/report", (req, res) => {
   if (running) return res.status(409).json({ error: `zaten calisiyor: ${running}` });
-  const { target, official, brand } = req.body ?? {};
+  const { target, official, brand, channel } = req.body ?? {};
   if (!target || !official) return res.status(400).json({ error: "sahte url + resmi url gerekli" });
+  const ch0 = channel === "gsb" || channel === "cf" ? channel : "both";
   running = target;
-  log(`>> sikayet basladi: ${target} (${brand || "-"})`);
-  const ch = spawn("node", [resolve(SCRIPT_DIR, "report.mjs"), "--target", target, "--official", official, "--brand", brand ?? ""], { cwd: SCRIPT_DIR });
-  ch.stdout.on("data", (d) => String(d).split("\n").filter(Boolean).forEach((l) => log(l.trim())));
-  ch.stderr.on("data", (d) => String(d).split("\n").filter(Boolean).forEach((l) => log("[!] " + l.trim().slice(0, 140))));
-  ch.on("close", () => { log(`>> bitti: ${target}`); running = null; });
-  res.json({ started: true });
+  log(`>> sikayet basladi [${ch0}]: ${target} (${brand || "-"})`);
+  const jobs = [];
+  if (ch0 !== "gsb") jobs.push(["report.mjs", ["--target", target, "--official", official, "--brand", brand ?? ""]]);
+  if (ch0 !== "cf") jobs.push(["gsb-report.mjs", ["--target", target]]);
+  // sirayla calistir — ikisi rastgele profil secer, eszamanli cakisma olmasin
+  const runNext = (i) => {
+    if (i >= jobs.length) { log(`>> bitti: ${target}`); running = null; return; }
+    const [script, args] = jobs[i];
+    const ch = spawn("node", [resolve(SCRIPT_DIR, script), ...args], { cwd: SCRIPT_DIR });
+    ch.stdout.on("data", (d) => String(d).split("\n").filter(Boolean).forEach((l) => log(`[${script.split(".")[0]}] ` + l.trim())));
+    ch.stderr.on("data", (d) => String(d).split("\n").filter(Boolean).forEach((l) => log("[!] " + l.trim().slice(0, 140))));
+    ch.on("close", () => runNext(i + 1));
+  };
+  runNext(0);
+  res.json({ started: true, channel: ch0 });
 });
 
 app.listen(PORT, () => console.log(`cf-abuse panel: http://localhost:${PORT} (${USER})`));

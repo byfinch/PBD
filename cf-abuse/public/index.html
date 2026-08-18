@@ -85,11 +85,17 @@ td{padding:7px 10px;border-bottom:1px dashed rgba(0,255,65,.1);color:var(--soft)
       <input class="inp" id="o" placeholder="https://primebahis404.com/" spellcheck="false">
       <label>marka</label>
       <input class="inp" id="b" placeholder="Primebahis" style="max-width:280px" spellcheck="false">
+      <label>kanal</label>
+      <select class="inp" id="ch" style="max-width:280px">
+        <option value="both" selected>Cloudflare + Safe Browsing</option>
+        <option value="cf">sadece Cloudflare</option>
+        <option value="gsb">sadece Safe Browsing</option>
+      </select>
       <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
         <button class="btn solid" id="fire">$ ./report --fire</button>
         <span class="hint" id="fireState" style="margin:0"></span>
       </div>
-      <div class="hint">metin sablonu otomatik; profil + kimlik + turnstile + kanit motor halleder</div>
+      <div class="hint">metin sablonu otomatik; profil + kimlik + turnstile + kanit motor halleder. hata/dedupe'de kimlik+exit rotasyonu ile basariya kadar tekrar dener</div>
     </div>
   </div>
 
@@ -153,9 +159,9 @@ async function poll() {
 }
 
 $('#fire').addEventListener('click', async () => {
-  const target = $('#t').value.trim(), official = $('#o').value.trim(), brand = $('#b').value.trim();
+  const target = $('#t').value.trim(), official = $('#o').value.trim(), brand = $('#b').value.trim(), channel = $('#ch').value;
   if (!target || !official) return alert('sahte url + resmi url gerekli');
-  const r = await api('/api/report', { target, official, brand });
+  const r = await api('/api/report', { target, official, brand, channel });
   if (r.error) return alert(r.error);
   poll();
 });
