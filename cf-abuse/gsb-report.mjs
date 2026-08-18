@@ -104,9 +104,10 @@ async function attempt() {
     }
     await sleep(4000);
   }
-  if (!started?.port) throw new Error("profil acilmadi");
-  const cdp = await RawCdp.connect(started.port);
   try {
+    if (!started?.port) throw new Error("profil acilmadi");
+    const cdp2 = await RawCdp.connect(started.port);
+    var cdp = cdp2;
     await cdp.enableNetwork();
     await cdp.navigate(FORM_URL);
     await sleep(6000);
@@ -152,6 +153,8 @@ async function attempt() {
       returnByValue: true,
     });
     console.log("detay:", fillRes.result?.value ?? "?");
+    // KANIT 1: form dolu (tam sayfa)
+    await cdp.screenshot(`${SCRIPT_DIR}/evidence/kanit-filled-${Date.now()}.jpg`, 70, true);
 
     if (DRY) { result = "dry-ok"; note = "submit atlandi"; return result; }
 
@@ -180,16 +183,16 @@ async function attempt() {
       console.log("status:", note);
     }
     console.log("sunucu cevabi:", result);
-    await cdp.screenshot(`${SCRIPT_DIR}/evidence/gsb-final-${Date.now()}.jpg`);
+    await cdp.screenshot(`${SCRIPT_DIR}/evidence/kanit-result-${Date.now()}.jpg`);
     return result;
   } catch (err) {
     note = String(err).slice(0, 200);
     console.log("HATA:", note);
-    await cdp.screenshot(`${SCRIPT_DIR}/evidence/gsb-err-${Date.now()}.jpg`).catch(() => {});
+    if (typeof cdp !== "undefined") await cdp.screenshot(`${SCRIPT_DIR}/evidence/gsb-err-${Date.now()}.jpg`).catch(() => {});
     if (/EXIT_DEAD|cdp timeout|Target|closed|profil acilmadi/i.test(note)) return "EXIT_DEAD";
     return "error";
   } finally {
-    cdp.close();
+    if (typeof cdp !== "undefined") cdp.close();
     await lapi(`/api/v1/profile/stop/p/${profile.id}`).catch(() => {});
   }
 }

@@ -66,8 +66,8 @@ export class RawCdp {
     await this.call("Page.navigate", { url });
   }
 
-  async screenshot(path, quality = 65) {
-    const r = await this.call("Page.captureScreenshot", { format: "jpeg", quality });
+  async screenshot(path, quality = 65, fullPage = false) {
+    const r = await this.call("Page.captureScreenshot", { format: "jpeg", quality, captureBeyondViewport: fullPage });
     const { writeFileSync } = await import("node:fs");
     writeFileSync(path, Buffer.from(r.data, "base64"));
   }

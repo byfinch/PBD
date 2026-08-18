@@ -285,6 +285,8 @@ async function attempt(attemptNo) {
       }
     }
     console.log("alanlar doldu");
+    // KANIT 1: form tam dolu (tam sayfa)
+    await cdp.screenshot(`${SCRIPT_DIR}/evidence/kanit-filled-${Date.now()}.jpg`, 70, true);
   }
 
   // DSA — once sayfa dibine don (widget kadraja girsin), sonra odakla
@@ -389,7 +391,7 @@ async function attempt(attemptNo) {
     if (!ok && submitHttp) { result = "submit-error"; note = "ag hatasi HTTP " + submitHttp; }  // thank-you dialogu 400'den once gelir
     console.log("sunucu cevabi:", result, note);
   }
-  await cdp.screenshot(`${SCRIPT_DIR}/evidence/final-${Date.now()}.jpg`);
+  await cdp.screenshot(`${SCRIPT_DIR}/evidence/kanit-result-${Date.now()}.jpg`);
   return result;
   } catch (err) {
     note = String(err).slice(0, 200);

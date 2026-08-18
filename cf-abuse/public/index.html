@@ -222,20 +222,25 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'
 const PAGE_SIZE = 10;
 let page = 1, allReports = [], allEvidence = [];
 
-// bir rapor satirinin kanitlari: kosunun zaman penceresine dusen gorseller
+// bir rapor satirinin kanitlari: kosunun zaman penceresine dusen KANIT gorselleri
+// (ara/debug screenshot'lari gosterilmez; sadece form-dolu ve submit-sonrasi)
 function evFor(r) {
   if (!r.ts) return [];
   const end = new Date(r.ts).getTime();
   const start = end - (r.ms ?? 0) - 15000;
-  return allEvidence.filter((e) => e.mtime >= start && e.mtime <= end + 20000);
+  return allEvidence
+    .filter((e) => e.name.startsWith('kanit-') && e.mtime >= start && e.mtime <= end + 20000)
+    .sort((a, b) => a.mtime - b.mtime);
 }
+const evLabel = (name) => name.startsWith('kanit-filled') ? 'DOLDURULMUŞ FORM'
+  : name.startsWith('kanit-result') ? 'GÖNDERİM SONUCU' : name;
 function openEvidence(r) {
   const ev = evFor(r);
   $('#evTitle').textContent = `kanıtlar — ${(r.target || '').replace(/^https?:\/\//, '')} · ${fmtT(r.ts)}`;
   $('#evGrid').innerHTML = ev.map((e) => `
     <div class="ev" data-url="${e.url}">
       <img loading="lazy" src="${e.url}" alt="">
-      <span>${esc(e.name)}</span>
+      <span>${evLabel(e.name)}</span>
     </div>`).join('') || '<div class="empty"># bu koşuya ait kanıt bulunamadı</div>';
   document.querySelectorAll('#evGrid .ev').forEach((el) => el.addEventListener('click', () => {
     $('#lightboxImg').src = el.dataset.url;

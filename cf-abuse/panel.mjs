@@ -92,7 +92,7 @@ app.post("/api/report", (req, res) => {
     const ch = spawn("node", [resolve(SCRIPT_DIR, script), ...args], { cwd: SCRIPT_DIR });
     ch.stdout.on("data", (d) => String(d).split("\n").filter(Boolean).forEach((l) => log(`[${script.split(".")[0]}] ` + l.trim())));
     ch.stderr.on("data", (d) => String(d).split("\n").filter(Boolean).forEach((l) => log("[!] " + l.trim().slice(0, 140))));
-    ch.on("close", () => runNext(i + 1));
+    ch.on("close", () => setTimeout(() => runNext(i + 1), 8000));  // launcher nefes alsin
   };
   runNext(0);
   res.json({ started: true, channel: ch0 });
