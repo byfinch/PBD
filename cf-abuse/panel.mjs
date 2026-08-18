@@ -72,7 +72,7 @@ app.get("/api/state", (_req, res) => {
     }
     evidence.sort((a, b) => b.mtime - a.mtime);
   }
-  res.json({ running, activity: activity.slice(-60), reports: reports.reverse().slice(0, 500), evidence: evidence.slice(0, 12) });
+  res.json({ running, activity: activity.slice(-60), reports: reports.reverse().slice(0, 500), evidence: evidence.slice(0, 600) });
 });
 
 app.post("/api/report", (req, res) => {

@@ -99,8 +99,15 @@ tbody tr:last-child td{border-bottom:none}
 .pg.cur{background:var(--acc-dim);border-color:var(--border-acc);color:var(--acc)}
 .pg:disabled{opacity:.3;cursor:default}
 
-/* ── kanıtlar ── */
-.ev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:14px 16px}
+/* ── kanıt modalı ── */
+.modal{position:fixed;inset:0;z-index:150;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.82);padding:40px}
+.modal-box{background:var(--surface);border:1px solid var(--border-acc);border-radius:8px;max-width:980px;width:100%;max-height:100%;display:flex;flex-direction:column;overflow:hidden}
+.modal-h{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.modal-h h3{font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--soft);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.modal-h h3::before{content:'▸ ';color:var(--acc)}
+.modal-x{background:none;border:1px solid var(--border);color:var(--dim);font:inherit;font-size:11px;padding:4px 12px;cursor:pointer;border-radius:3px}
+.modal-x:hover{color:var(--fail);border-color:rgba(232,86,86,.4)}
+.ev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;padding:16px;overflow-y:auto}
 .ev{position:relative;border:1px solid var(--border);border-radius:4px;overflow:hidden;cursor:zoom-in;background:#000;
   aspect-ratio:4/3;transition:border-color .15s}
 .ev:hover{border-color:var(--border-acc)}
@@ -108,6 +115,10 @@ tbody tr:last-child td{border-bottom:none}
 .ev:hover img{opacity:1}
 .ev span{position:absolute;left:0;right:0;bottom:0;padding:4px 7px;font-size:9px;color:var(--soft);
   background:linear-gradient(transparent,rgba(0,0,0,.9));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev-btn{background:none;border:1px solid var(--border);color:var(--cyan);font:inherit;font-size:10px;letter-spacing:1px;
+  padding:3px 10px;cursor:pointer;border-radius:3px;white-space:nowrap;transition:.15s}
+.ev-btn:hover:not(:disabled){border-color:rgba(56,200,232,.5);box-shadow:0 0 10px rgba(56,200,232,.15)}
+.ev-btn:disabled{opacity:.3;cursor:default;color:var(--dim)}
 .lightbox{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;
   background:rgba(0,0,0,.9);cursor:zoom-out;padding:40px}
 .lightbox img{max-width:100%;max-height:100%;border:1px solid var(--border-acc);border-radius:6px}
@@ -169,12 +180,6 @@ tbody tr:last-child td{border-bottom:none}
           <div class="form-note">metin şablonu, profil + kimlik rotasyonu, turnstile ve kanıt toplama otomatiktir; red/dedupe durumunda taze kimlik + exit ile başarıya kadar tekrar dener</div>
         </div>
       </div>
-
-      <!-- kanıtlar -->
-      <div class="card">
-        <div class="card-h"><h2>Kanıtlar</h2><span class="t-dim" id="evCount" style="font-size:10px"></span></div>
-        <div class="ev-grid" id="evGrid"><div class="empty"># kanıt yok</div></div>
-      </div>
     </div>
 
     <!-- SAĞ: konsol -->
@@ -192,7 +197,7 @@ tbody tr:last-child td{border-bottom:none}
     <div style="overflow-x:auto">
       <table>
         <thead><tr>
-          <th>Zaman</th><th>Kanal</th><th>Hedef</th><th>Marka</th><th>Profil</th><th>Kimlik</th><th>Sonuç</th><th>Süre</th>
+          <th>Zaman</th><th>Kanal</th><th>Hedef</th><th>Marka</th><th>Profil</th><th>Kimlik</th><th>Sonuç</th><th>Süre</th><th>Kanıt</th>
         </tr></thead>
         <tbody id="rows"></tbody>
       </table>
@@ -203,11 +208,43 @@ tbody tr:last-child td{border-bottom:none}
 
 <div class="lightbox" id="lightbox"><img id="lightboxImg"></div>
 
+<!-- kanıt modalı -->
+<div class="modal" id="evModal">
+  <div class="modal-box">
+    <div class="modal-h"><h3 id="evTitle">Kanıtlar</h3><button class="modal-x" id="evClose">KAPAT</button></div>
+    <div class="ev-grid" id="evGrid"></div>
+  </div>
+</div>
+
 <script>
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const PAGE_SIZE = 10;
-let page = 1, allReports = [];
+let page = 1, allReports = [], allEvidence = [];
+
+// bir rapor satirinin kanitlari: kosunun zaman penceresine dusen gorseller
+function evFor(r) {
+  if (!r.ts) return [];
+  const end = new Date(r.ts).getTime();
+  const start = end - (r.ms ?? 0) - 15000;
+  return allEvidence.filter((e) => e.mtime >= start && e.mtime <= end + 20000);
+}
+function openEvidence(r) {
+  const ev = evFor(r);
+  $('#evTitle').textContent = `kanıtlar — ${(r.target || '').replace(/^https?:\/\//, '')} · ${fmtT(r.ts)}`;
+  $('#evGrid').innerHTML = ev.map((e) => `
+    <div class="ev" data-url="${e.url}">
+      <img loading="lazy" src="${e.url}" alt="">
+      <span>${esc(e.name)}</span>
+    </div>`).join('') || '<div class="empty"># bu koşuya ait kanıt bulunamadı</div>';
+  document.querySelectorAll('#evGrid .ev').forEach((el) => el.addEventListener('click', () => {
+    $('#lightboxImg').src = el.dataset.url;
+    $('#lightbox').style.display = 'flex';
+  }));
+  $('#evModal').style.display = 'flex';
+}
+$('#evClose').addEventListener('click', () => { $('#evModal').style.display = 'none'; });
+$('#evModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.style.display = 'none'; });
 
 async function api(path, body) {
   const r = await fetch(path, {
@@ -250,7 +287,9 @@ function renderTable() {
   if (page > pages) page = pages;
   const slice = allReports.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   $('#repCount').textContent = total + ' kayıt';
-  $('#rows').innerHTML = slice.map((r) => `
+  $('#rows').innerHTML = slice.map((r, i) => {
+    const evCount = evFor(r).length;
+    return `
     <tr>
       <td class="t-dim">${fmtT(r.ts)}</td>
       <td>${chanChip(r.source)}</td>
@@ -260,7 +299,11 @@ function renderTable() {
       <td class="t-dim">${esc((r.identity || '').split('@')[0] || '—')}</td>
       <td>${chip(r.result)}</td>
       <td class="t-dim">${r.ms ? Math.round(r.ms / 1000) + 'sn' : '—'}</td>
-    </tr>`).join('') || '<tr><td colspan="8" class="empty"># henüz kayıt yok</td></tr>';
+      <td><button class="ev-btn" data-i="${(page - 1) * PAGE_SIZE + i}" ${evCount ? '' : 'disabled'}>${evCount ? evCount + ' görsel' : '—'}</button></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="9" class="empty"># henüz kayıt yok</td></tr>';
+  document.querySelectorAll('.ev-btn:not(:disabled)').forEach((b) =>
+    b.addEventListener('click', () => openEvidence(allReports[Number(b.dataset.i)])));
 
   // sayfalama — akıllı pencere (1 … c-1 c c+1 … N)
   const pg = $('#pager');
@@ -282,18 +325,7 @@ function renderTable() {
   pg.querySelectorAll('.pg').forEach((b) => b.addEventListener('click', () => { page = Number(b.dataset.p); renderTable(); }));
 }
 
-function renderEvidence(ev) {
-  $('#evCount').textContent = (ev?.length ?? 0) + ' görsel';
-  $('#evGrid').innerHTML = (ev ?? []).map((e) => `
-    <div class="ev" data-url="${e.url}">
-      <img loading="lazy" src="${e.url}" alt="">
-      <span>${esc(e.name)}</span>
-    </div>`).join('') || '<div class="empty"># kanıt yok</div>';
-  document.querySelectorAll('.ev').forEach((el) => el.addEventListener('click', () => {
-    $('#lightboxImg').src = el.dataset.url;
-    $('#lightbox').style.display = 'flex';
-  }));
-}
+function renderEvidence() { /* kaldirildi — kanitlar satir bazli modalda */ }
 $('#lightbox').addEventListener('click', () => { $('#lightbox').style.display = 'none'; });
 
 async function poll() {
@@ -316,9 +348,8 @@ async function poll() {
     }).join('') || '<div class="empty"># henüz aktivite yok</div>';
     if (atBottom) log.scrollTop = log.scrollHeight;
 
-    const sig = JSON.stringify((d.reports ?? []).slice(0, 3).map((r) => r.ts)) + (d.reports?.length ?? 0);
-    if (sig !== poll._lastSig) { poll._lastSig = sig; allReports = d.reports ?? []; renderTable(); }
-    renderEvidence(d.evidence);
+    const sig = JSON.stringify((d.reports ?? []).slice(0, 3).map((r) => r.ts)) + (d.reports?.length ?? 0) + (d.evidence?.length ?? 0);
+    if (sig !== poll._lastSig) { poll._lastSig = sig; allReports = d.reports ?? []; allEvidence = d.evidence ?? []; renderTable(); }
   } catch (e) {}
 }
 
