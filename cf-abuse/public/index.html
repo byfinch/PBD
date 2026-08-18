@@ -232,8 +232,11 @@ function evFor(r) {
     .filter((e) => e.name.startsWith('kanit-') && e.mtime >= start && e.mtime <= end + 20000)
     .sort((a, b) => a.mtime - b.mtime);
 }
-const evLabel = (name) => name.startsWith('kanit-filled') ? 'DOLDURULMUŞ FORM'
-  : name.startsWith('kanit-result') ? 'GÖNDERİM SONUCU' : name;
+const evLabel = (name) => {
+  const m = name.match(/^kanit-(.+?)-(filled|result)-/);
+  if (!m) return name;
+  return `${m[1]} · ${m[2] === 'filled' ? 'DOLDURULMUŞ FORM' : 'GÖNDERİM SONUCU'}`;
+};
 function openEvidence(r) {
   const ev = evFor(r);
   $('#evTitle').textContent = `kanıtlar — ${(r.target || '').replace(/^https?:\/\//, '')} · ${fmtT(r.ts)}`;

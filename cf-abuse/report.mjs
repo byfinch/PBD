@@ -211,7 +211,7 @@ async function attempt(attemptNo) {
       if (sq.nodeId) await cdp.cdp("DOM.scrollIntoViewIfNeeded", { nodeId: sq.nodeId }).catch(() => {});
     }
     await sleep(1500);
-    const shotPath = `${SCRIPT_DIR}/evidence/ts-find-${Date.now()}.jpg`;
+    const shotPath = `${SCRIPT_DIR}/evidence/debug-ts-find-${Date.now()}.jpg`;
     await cdp.screenshot(shotPath);
     let out = "";
     try {
@@ -226,7 +226,7 @@ async function attempt(attemptNo) {
     // yesil tik dogrulamasi (piksel) + submit state
     for (let t = 0; t < 24 && !passed; t += 6) {
       await sleep(6000);
-      const vPath = `${SCRIPT_DIR}/evidence/ts-verify-${Date.now()}.jpg`;
+      const vPath = `${SCRIPT_DIR}/evidence/debug-ts-verify-${Date.now()}.jpg`;
       await cdp.screenshot(vPath);
       let green = "";
       try { green = execFileSync(PY, [resolve(dirname(fileURLToPath(import.meta.url)), "find-widget.py"), vPath, "verify"], { encoding: "utf8" }).trim(); } catch {}
@@ -234,7 +234,7 @@ async function attempt(attemptNo) {
       if (green === "yesil" || enabled) passed = true;
     }
   }
-  await cdp.screenshot(`${SCRIPT_DIR}/evidence/ts-${Date.now()}.jpg`);
+  await cdp.screenshot(`${SCRIPT_DIR}/evidence/debug-ts-${Date.now()}.jpg`);
   if (!passed) throw new Error("turnstile gecmedi");
   console.log("turnstile GECTI");
 
@@ -271,7 +271,7 @@ async function attempt(attemptNo) {
     // pasif dogrulama: bossa hata ver (dis dongu temiz sekilde yeniden dener)
     {
       const lb = await cdp.box('[aria-label="Logs or other evidence of abuse"]');
-      const shotPath = `${SCRIPT_DIR}/evidence/logs-check-${Date.now()}.jpg`;
+      const shotPath = `${SCRIPT_DIR}/evidence/debug-logs-${Date.now()}.jpg`;
       await cdp.screenshot(shotPath);
       if (lb) {
         let r = "?";
@@ -286,7 +286,7 @@ async function attempt(attemptNo) {
     }
     console.log("alanlar doldu");
     // KANIT 1: form tam dolu (tam sayfa)
-    await cdp.screenshot(`${SCRIPT_DIR}/evidence/kanit-filled-${Date.now()}.jpg`, 70, true);
+    await cdp.screenshot(`${SCRIPT_DIR}/evidence/kanit-${profile.name}-filled-${Date.now()}.jpg`, 70, true);
   }
 
   // DSA — once sayfa dibine don (widget kadraja girsin), sonra odakla
@@ -297,7 +297,7 @@ async function attempt(attemptNo) {
       if (sq.nodeId) await cdp.cdp("DOM.scrollIntoViewIfNeeded", { nodeId: sq.nodeId }).catch(() => {});
       await sleep(1500);
     }
-    const wPath = `${SCRIPT_DIR}/evidence/dsa-anchor-${Date.now()}.jpg`;
+    const wPath = `${SCRIPT_DIR}/evidence/debug-dsa-${Date.now()}.jpg`;
     await cdp.screenshot(wPath);
     let anchored = false;
     try {
@@ -343,13 +343,13 @@ async function attempt(attemptNo) {
     // Turnstile token tazeligi — alan doldurma uzun surduyse token bayatlar
     // ("signal timed out"). Submit'ten once yesil degilse tikla + tazele.
     {
-      const vPath = `${SCRIPT_DIR}/evidence/ts-refresh-${Date.now()}.jpg`;
+      const vPath = `${SCRIPT_DIR}/evidence/debug-ts-refresh-${Date.now()}.jpg`;
       await cdp.screenshot(vPath);
       let green = "";
       try { green = execFileSync(PY, [resolve(dirname(fileURLToPath(import.meta.url)), "find-widget.py"), vPath, "verify"], { encoding: "utf8" }).trim(); } catch {}
       if (green !== "yesil") {
         console.log("turnstile bayat — tazeleniyor");
-        const fPath = `${SCRIPT_DIR}/evidence/ts-refind-${Date.now()}.jpg`;
+        const fPath = `${SCRIPT_DIR}/evidence/debug-ts-refind-${Date.now()}.jpg`;
         await cdp.screenshot(fPath);
         let out = "";
         try { out = execFileSync(PY, [resolve(dirname(fileURLToPath(import.meta.url)), "find-widget.py"), fPath], { encoding: "utf8" }).trim(); } catch {}
@@ -358,7 +358,7 @@ async function attempt(attemptNo) {
           await cdp.click(rx, ry);
           for (let t = 0; t < 30 && green !== "yesil"; t += 5) {
             await sleep(5000);
-            const v2 = `${SCRIPT_DIR}/evidence/ts-reverify-${Date.now()}.jpg`;
+            const v2 = `${SCRIPT_DIR}/evidence/debug-ts-reverify-${Date.now()}.jpg`;
             await cdp.screenshot(v2);
             try { green = execFileSync(PY, [resolve(dirname(fileURLToPath(import.meta.url)), "find-widget.py"), v2, "verify"], { encoding: "utf8" }).trim(); } catch {}
           }
@@ -367,7 +367,7 @@ async function attempt(attemptNo) {
       }
     }
     // Submit — piksel rehberli (mavi buton)
-    const sPath = `${SCRIPT_DIR}/evidence/submit-find-${Date.now()}.jpg`;
+    const sPath = `${SCRIPT_DIR}/evidence/debug-submit-${Date.now()}.jpg`;
     await cdp.screenshot(sPath);
     let sout = "";
     try { sout = execFileSync(PY, [resolve(dirname(fileURLToPath(import.meta.url)), "find-widget.py"), sPath, "submit"], { encoding: "utf8" }).trim(); } catch {}
@@ -391,12 +391,12 @@ async function attempt(attemptNo) {
     if (!ok && submitHttp) { result = "submit-error"; note = "ag hatasi HTTP " + submitHttp; }  // thank-you dialogu 400'den once gelir
     console.log("sunucu cevabi:", result, note);
   }
-  await cdp.screenshot(`${SCRIPT_DIR}/evidence/kanit-result-${Date.now()}.jpg`);
+  await cdp.screenshot(`${SCRIPT_DIR}/evidence/kanit-${profile.name}-result-${Date.now()}.jpg`);
   return result;
   } catch (err) {
     note = String(err).slice(0, 200);
     console.log("HATA:", note);
-    await cdp.screenshot(`${SCRIPT_DIR}/evidence/err-${Date.now()}.jpg`).catch(() => {});
+    await cdp.screenshot(`${SCRIPT_DIR}/evidence/debug-err-${Date.now()}.jpg`).catch(() => {});
     // cdp timeout / renderer çökmesi / bos sayfa — exit'e yaz, dondur
     if (/EXIT_DEAD|cdp timeout|Target|closed|profil acilmadi/i.test(note)) return "EXIT_DEAD";
     return "error";

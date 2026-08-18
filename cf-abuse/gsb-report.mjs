@@ -6,7 +6,7 @@
  *
  * Akis: profil ac -> report_phish formu -> url + detay (DOM.focus) ->
  * reCAPTCHA checkbox (iframe ici piksel tik + yesil tik dogrulama) -> Submit.
- * Kanit: evidence/gsb-*.jpg + reports.jsonl satiri (source: "gsb").
+ * Kanit: evidence/debug-gsb-*.jpg + reports.jsonl satiri (source: "gsb").
  */
 import { readFileSync, appendFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -154,7 +154,7 @@ async function attempt() {
     });
     console.log("detay:", fillRes.result?.value ?? "?");
     // KANIT 1: form dolu (tam sayfa)
-    await cdp.screenshot(`${SCRIPT_DIR}/evidence/kanit-filled-${Date.now()}.jpg`, 70, true);
+    await cdp.screenshot(`${SCRIPT_DIR}/evidence/kanit-${profile.name}-filled-${Date.now()}.jpg`, 70, true);
 
     if (DRY) { result = "dry-ok"; note = "submit atlandi"; return result; }
 
@@ -184,12 +184,12 @@ async function attempt() {
     }
     console.log("sunucu cevabi:", result);
     // KANIT 2: status kutusu formun altinda — tam sayfa cek (form submit sonrasi sifirlanir)
-    await cdp.screenshot(`${SCRIPT_DIR}/evidence/kanit-result-${Date.now()}.jpg`, 70, true);
+    await cdp.screenshot(`${SCRIPT_DIR}/evidence/kanit-${profile.name}-result-${Date.now()}.jpg`, 70, true);
     return result;
   } catch (err) {
     note = String(err).slice(0, 200);
     console.log("HATA:", note);
-    if (typeof cdp !== "undefined") await cdp.screenshot(`${SCRIPT_DIR}/evidence/gsb-err-${Date.now()}.jpg`).catch(() => {});
+    if (typeof cdp !== "undefined") await cdp.screenshot(`${SCRIPT_DIR}/evidence/debug-err-${Date.now()}.jpg`).catch(() => {});
     if (/EXIT_DEAD|cdp timeout|Target|closed|profil acilmadi/i.test(note)) return "EXIT_DEAD";
     return "error";
   } finally {
