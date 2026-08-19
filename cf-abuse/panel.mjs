@@ -4,7 +4,7 @@
  * Port: 3090 (env PANEL_PORT ile degisir). Login: PANEL_USER/PANEL_PASSWORD.
  */
 import { createHash, randomBytes } from "node:crypto";
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
@@ -140,7 +140,7 @@ function startAttack({ target, official, brand, channel }) {
   const runNext = (i) => {
     if (i >= jobs.length) { log(`>> bitti: ${target}`); running = null; return; }
     const [script, args] = jobs[i];
-    const ch = spawn("node", [resolve(SCRIPT_DIR, script), ...args], { cwd: SCRIPT_DIR });
+    const ch = spawn(process.execPath, [resolve(SCRIPT_DIR, script), ...args], { cwd: SCRIPT_DIR });
     ch.stdout.on("data", (d) => String(d).split("\n").filter(Boolean).forEach((l) => log(`[${script.split(".")[0]}] ` + l.trim())));
     ch.stderr.on("data", (d) => String(d).split("\n").filter(Boolean).forEach((l) => log("[!] " + l.trim().slice(0, 140))));
     ch.on("close", () => setTimeout(() => runNext(i + 1), 8000));  // launcher nefes alsin
