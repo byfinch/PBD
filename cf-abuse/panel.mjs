@@ -9,6 +9,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import express from "express";
+import { loadBrands, upsertBrand, removeBrand, httpResolve, brandOfficialUrl, brandByName } from "./lib/brands.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const LOG = resolve(SCRIPT_DIR, "reports.jsonl");
@@ -132,12 +133,14 @@ app.get("/api/state", (_req, res) => {
     evidence: evidence.slice(0, 600),
     monitors: loadMonitors().watch,
     detections: det.filter((d) => d.status === "pending"),
+    brands: loadBrands().brands,
   });
 });
 
 // saldiri zincirini baslat (feed + abuse-mail + 10 profil CF/GSB) — /api/report ve tespit onayi ortak
 function startAttack({ target, official, brand, channel }) {
-  if (!target || !official) return { status: 400, body: { error: "sahte url + resmi url gerekli" } };
+  if (!official && brand) official = brandOfficialUrl(brand);  // marka kaydindan official
+  if (!target || !official) return { status: 400, body: { error: "sahte url + resmi url gerekli (marka kayitliysa resmi otomatik dolar)" } };
   if (running) {
     queue.push({ target, official, brand, channel: channel || "both", queuedTs: new Date().toISOString() });
     log(`>> kuyruga alindi (${queue.length}.): ${target} (${brand || "-"})`);
@@ -233,10 +236,63 @@ app.post("/api/detections/dismiss", (req, res) => {
 app.post("/api/monitors/add", (req, res) => {
   const domain = String(req.body?.domain ?? "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "");
   if (!domain) return res.status(400).json({ error: "domain veya desen gerekli" });
-  const r = upsertWatch({ domain, official: String(req.body?.official ?? ""), brand: String(req.body?.brand ?? "") });
+  let official = String(req.body?.official ?? "");
+  let brand = String(req.body?.brand ?? "");
+  const r = upsertWatch({ domain, official, brand });
   if (!r) return res.status(400).json({ error: `desen uretilemedi: ${domain} (orn. rovbet123.com veya herabetN.cam)` });
+  // official/brand verilmediyse marka kayitlarindan doldur
+  if ((!official || !brand) && r.entry.stem) {
+    const b = brandByName(r.entry.stem);
+    if (b) {
+      let touched = false;
+      if (!r.entry.brand) { r.entry.brand = b.name; touched = true; }
+      if (!r.entry.official && b.officialDomain) { r.entry.official = `https://${b.officialDomain}/`; touched = true; }
+      if (touched) {
+        const monitors = loadMonitors();
+        const w = monitors.watch.find((x) => x.stem === r.entry.stem && x.tld === r.entry.tld);
+        if (w) { w.brand = r.entry.brand; w.official = r.entry.official; writeJ(MONITORS, monitors); }
+      }
+    }
+  }
   log(`>> monitor izlemesine eklendi: ${r.entry.stem}N.${r.entry.tld}${r.created ? "" : " (desen zaten vardi, guncellendi)"}`);
   res.json({ ok: true, created: r.created, pattern: `${r.entry.stem}N.${r.entry.tld}` });
+});
+
+// ---- marka kayitlari ----
+
+app.get("/api/brands", (_req, res) => res.json({ brands: loadBrands().brands }));
+
+app.post("/api/brands", async (req, res) => {
+  const name = String(req.body?.name ?? "").trim();
+  const resolverUrl = String(req.body?.resolverUrl ?? "").trim();
+  if (!name || !resolverUrl) return res.status(400).json({ error: "marka adi + resolver linki gerekli" });
+  const rz = await httpResolve(resolverUrl);
+  const r = upsertBrand({ name, resolverUrl, officialDomain: rz.ok ? rz.host : "" });
+  r.entry.lastResolveNote = rz.ok ? `http ${rz.status}` : rz.note;
+  log(`>> marka ${r.created ? "eklendi" : "guncellendi"}: ${name} -> ${rz.ok ? rz.host : "(cozulemedi, resolver timer tekrarlar)"}`);
+  res.json({ ok: true, created: r.created, officialDomain: r.entry.officialDomain, note: r.entry.lastResolveNote });
+});
+
+app.post("/api/brands/update", async (req, res) => {
+  const name = String(req.body?.name ?? "").trim();
+  const resolverUrl = String(req.body?.resolverUrl ?? "").trim();
+  if (!name) return res.status(400).json({ error: "marka adi gerekli" });
+  if (!brandByName(name)) return res.status(404).json({ error: "marka yok" });
+  let officialDomain;
+  if (resolverUrl) {
+    const rz = await httpResolve(resolverUrl);
+    officialDomain = rz.ok ? rz.host : "";
+  }
+  const r = upsertBrand({ name, resolverUrl: resolverUrl || undefined, officialDomain });
+  log(`>> marka guncellendi: ${name} -> ${r.entry.officialDomain || "(cozulemedi)"}`);
+  res.json({ ok: true, officialDomain: r.entry.officialDomain });
+});
+
+app.post("/api/brands/remove", (req, res) => {
+  const name = String(req.body?.name ?? "");
+  const removed = removeBrand(name);
+  if (removed) log(`>> marka silindi: ${name}`);
+  res.json({ ok: true, removed });
 });
 
 app.post("/api/monitors/remove", (req, res) => {

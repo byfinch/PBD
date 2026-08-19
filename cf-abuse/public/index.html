@@ -195,7 +195,8 @@ tbody tr:last-child td{border-bottom:none}
           <div class="field"><label>Resmi URL</label>
             <input class="inp" id="o" placeholder="https://ornek-resmi.com/" spellcheck="false"></div>
           <div class="field"><label>Marka</label>
-            <input class="inp" id="b" placeholder="Marka adı" spellcheck="false"></div>
+            <input class="inp" id="b" placeholder="Marka adı" spellcheck="false" list="brandList">
+            <datalist id="brandList"></datalist></div>
           <div class="field"><label>Kanal</label>
             <select class="inp" id="ch">
               <option value="both" selected>Cloudflare + Safe Browsing</option>
@@ -205,6 +206,19 @@ tbody tr:last-child td{border-bottom:none}
           <button class="fire" id="fire">Saldırıyı Başlat</button>
           <div id="queueLine" style="margin-top:10px"></div>
           <div class="form-note">önce feed'ler (urlscan/VT/APWG/CRDF) + registrar/hosting abuse maili anında gider; sonra 10 profil sırayla CF/GSB raporlar; metin şablonu, kimlik + exit rotasyonu, turnstile ve kanıt toplama otomatiktir</div>
+        </div>
+      </div>
+
+      <!-- MARKALAR -->
+      <div class="card">
+        <div class="card-h"><h2>Markalar</h2><span class="t-dim" style="font-size:10px" id="brandCount"></span></div>
+        <div class="card-b">
+          <div class="mon-add" style="margin-bottom:10px">
+            <input class="inp" id="brandNameInp" placeholder="marka adı" spellcheck="false" style="max-width:120px">
+            <input class="inp" id="brandUrlInp" placeholder="resolver linki (kısa link)" spellcheck="false">
+            <button class="btn-fire" id="brandAddBtn">Ekle</button>
+          </div>
+          <div class="det-table" id="brandList2"></div>
         </div>
       </div>
 
@@ -433,6 +447,51 @@ async function addMonitor() {
 $('#monAddBtn').addEventListener('click', addMonitor);
 $('#monAddInp').addEventListener('keydown', (e) => { if (e.key === 'Enter') addMonitor(); });
 
+// ── markalar ──
+let allBrands = [];
+function renderBrands(brands) {
+  allBrands = brands ?? [];
+  $('#brandCount').textContent = allBrands.length + ' marka';
+  $('#brandList').innerHTML = allBrands.map((b) => `<option value="${esc(b.name)}">${esc(b.officialDomain || '')}</option>`).join('');
+  $('#brandList2').innerHTML = allBrands.length ? allBrands.map((b) => `
+    <div class="det-row">
+      <span class="det-domain">${esc(b.name)}</span>
+      <span class="det-fd">${esc(b.officialDomain || '—')}</span>
+      <span class="det-meta" title="${esc(b.resolverUrl)}">${esc((b.resolverUrl || '').replace(/^https?:\/\//, '').slice(0, 26))}${b.lastResolved ? ' · ' + fmtT(b.lastResolved) : ''}</span>
+      <span class="det-act">
+        <button class="btn-dim" data-bedit="${esc(b.name)}" title="düzenle">Düzenle</button>
+        <button class="btn-dim" data-bdel="${esc(b.name)}" title="sil">Sil</button>
+      </span>
+    </div>`).join('')
+    : '<div class="empty"># marka yok</div>';
+  document.querySelectorAll('[data-bedit]').forEach((x) => x.addEventListener('click', () => {
+    const b = allBrands.find((v) => v.name === x.dataset.bedit);
+    if (!b) return;
+    $('#brandNameInp').value = b.name;
+    $('#brandUrlInp').value = b.resolverUrl || '';
+    $('#brandUrlInp').focus();
+  }));
+  document.querySelectorAll('[data-bdel]').forEach((x) => x.addEventListener('click', async () => {
+    await api('/api/brands/remove', { name: x.dataset.bdel }); poll();
+  }));
+}
+async function addBrand() {
+  const name = $('#brandNameInp').value.trim(), resolverUrl = $('#brandUrlInp').value.trim();
+  if (!name || !resolverUrl) return alert('marka adı + resolver linki gerekli');
+  $('#brandAddBtn').disabled = true;
+  const r = await api('/api/brands', { name, resolverUrl });
+  $('#brandAddBtn').disabled = false;
+  if (r.error) { alert(r.error); return; }
+  $('#brandNameInp').value = ''; $('#brandUrlInp').value = '';
+  poll();
+}
+$('#brandAddBtn').addEventListener('click', addBrand);
+// marka secilince resmi url otomatik dolsun (serbest yazi serbest)
+$('#b').addEventListener('change', () => {
+  const b = allBrands.find((v) => v.name.toLowerCase() === $('#b').value.trim().toLowerCase());
+  if (b?.officialDomain) $('#o').value = `https://${b.officialDomain}/`;
+});
+
 async function poll() {
   try {
     const d = await api('/api/state');
@@ -457,8 +516,9 @@ async function poll() {
     if (atBottom) log.scrollTop = log.scrollHeight;
 
     const sig = JSON.stringify((d.reports ?? []).slice(0, 3).map((r) => r.ts)) + (d.reports?.length ?? 0) + (d.evidence?.length ?? 0)
-      + JSON.stringify((d.detections ?? []).map((x) => x.domain + x.status)) + (d.monitors?.length ?? 0);
-    if (sig !== poll._lastSig) { poll._lastSig = sig; allReports = d.reports ?? []; allEvidence = d.evidence ?? []; renderTable(); renderMonitors(d); }
+      + JSON.stringify((d.detections ?? []).map((x) => x.domain + x.status)) + (d.monitors?.length ?? 0)
+      + JSON.stringify((d.brands ?? []).map((b) => b.name + b.officialDomain));
+    if (sig !== poll._lastSig) { poll._lastSig = sig; allReports = d.reports ?? []; allEvidence = d.evidence ?? []; renderTable(); renderMonitors(d); renderBrands(d.brands); }
   } catch (e) {}
 }
 
