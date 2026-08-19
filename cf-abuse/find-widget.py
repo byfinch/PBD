@@ -65,10 +65,11 @@ if mode == "submit":
     sys.exit(0)
 
 if mode == "verify":
-    # checkbox bolgesinde yesil tik ara
-    for yy in range(int(cby) - 30, int(cby) + 30):
-        for xx in range(int(cbx) - 30, int(cbx) + 30):
-            if 0 <= xx < w and 0 <= yy < h and is_green(*px[xx, yy]):
+    # logo'nun y-bandinda (widget satiri) herhangi bir yerde yesil tik ara —
+    # tema/konum bagimsiz (acik temada checkbox ofseti farkli, koyuda da tutar)
+    for yy in range(int(cy) - 45, int(cy) + 45):
+        for xx in range(0, w):
+            if 0 <= yy < h and is_green(*px[xx, yy]):
                 print("yesil")
                 sys.exit(0)
     print("yesil-yok")
