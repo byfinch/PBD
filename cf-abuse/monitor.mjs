@@ -287,4 +287,6 @@ for (const w of monitors.watch) {
 writeJ(STATE, state);
 writeJ(MONITORS, monitors);
 writeJ(DETECTIONS, detections);
-console.log(`SONUC: ${monitors.watch.length} desen, ${A} aktif, ${F} yeni tespit | ${Math.round((Date.now() - t0) / 1000)}sn`);
+const ozet = `monitor turu: ${monitors.watch.length} desen, ${A} aktif, ${F} yeni tespit`;
+console.log(`SONUC: ${ozet} | ${Math.round((Date.now() - t0) / 1000)}sn`);
+await panelLog(ozet);  // canli konsolda gorunsun — sessiz calismiyor
