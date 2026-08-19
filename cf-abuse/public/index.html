@@ -177,7 +177,7 @@ tbody tr:last-child td{border-bottom:none}
               <option value="gsb">Sadece Safe Browsing</option>
             </select></div>
           <button class="fire" id="fire">Saldırıyı Başlat</button>
-          <div class="form-note">10 profilin tamamı sırayla raporlar; metin şablonu, kimlik + exit rotasyonu, turnstile ve kanıt toplama otomatiktir. red/dedupe durumunda taze kimlikle başarıya kadar tekrar dener</div>
+          <div class="form-note">önce feed'ler (urlscan/VT/APWG/CRDF) + registrar/hosting abuse maili anında gider; sonra 10 profil sırayla CF/GSB raporlar; metin şablonu, kimlik + exit rotasyonu, turnstile ve kanıt toplama otomatiktir</div>
         </div>
       </div>
     </div>
@@ -282,12 +282,21 @@ function chip(result, source) {
     submitted: ['ok', 'BAŞARILI'], dedupe: ['warn', 'DEDUPE'],
     'submit-error': ['fail', 'HATA'], error: ['fail', 'HATA'],
     'submit-belirsiz': ['warn', 'BELİRSİZ'], EXIT_DEAD: ['fail', 'EXIT ÖLDÜ'], 'dry-ok': ['info', 'DRY'],
+    sent: ['ok', 'GÖNDERİLDİ'], active: ['warn', 'AKTİF'], 'alici-yok': ['warn', 'ALICI YOK'],
   };
   const [cls, label] = map[result] ?? ['plain', result || '?'];
   return `<span class="chip ${cls}">${label}</span>`;
 }
-const chanChip = (s) => s === 'gsb'
-  ? '<span class="chip info">GSB</span>' : '<span class="chip plain">CF</span>';
+const chanChip = (s) => {
+  const map = {
+    gsb: ['info', 'GSB'], vt: ['ok', 'VT'], urlscan: ['ok', 'URLSCAN'],
+    apwg: ['ok', 'APWG'], crdf: ['ok', 'CRDF'],
+    registrar: ['ok', 'REGISTRAR'], hosting: ['ok', 'HOSTING'],
+    monitor: ['warn', 'MONITOR'],
+  };
+  const [cls, label] = map[s] ?? ['plain', 'CF'];
+  return `<span class="chip ${cls}">${label}</span>`;
+};
 
 function renderTable() {
   const total = allReports.length;

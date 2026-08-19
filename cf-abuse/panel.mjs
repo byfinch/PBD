@@ -45,6 +45,15 @@ app.post("/api/logout", (req, res) => {
   res.json({ ok: true });
 });
 
+// monitor.mjs gibi yerel bilesenler icin activity girisi (sadece loopback)
+app.post("/api/activity", (req, res) => {
+  const ip = req.socket.remoteAddress || "";
+  if (!/^(127\.|::1$|::ffff:127\.)/.test(ip)) return res.status(403).json({ error: "sadece localhost" });
+  const text = String(req.body?.text ?? "").slice(0, 300);
+  if (text) log(text);
+  res.json({ ok: true });
+});
+
 app.use(express.static(resolve(SCRIPT_DIR, "public")));
 
 app.use((req, res, next) => {
@@ -85,6 +94,9 @@ app.post("/api/report", (req, res) => {
   running = target;
   log(`>> sikayet basladi [${ch0}, ${profiles.length} profil]: ${target} (${brand || "-"})`);
   const jobs = [];
+  // feed + abuse-mail: profil gerektirmez, once ve hizli biter
+  jobs.push(["feed.mjs", ["--target", target, "--official", official, "--brand", brand ?? ""]]);
+  jobs.push(["abuse-mail.mjs", ["--target", target, "--official", official, "--brand", brand ?? ""]]);
   for (const p of profiles) {
     if (ch0 !== "gsb") jobs.push(["report.mjs", ["--target", target, "--official", official, "--brand", brand ?? "", "--profile", p]]);
     if (ch0 !== "cf") jobs.push(["gsb-report.mjs", ["--target", target, "--profile", p]]);
