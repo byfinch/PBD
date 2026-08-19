@@ -267,7 +267,8 @@ app.post("/api/brands", async (req, res) => {
   const resolverUrl = String(req.body?.resolverUrl ?? "").trim();
   if (!name || !resolverUrl) return res.status(400).json({ error: "marka adi + resolver linki gerekli" });
   const rz = await httpResolve(resolverUrl);
-  const r = upsertBrand({ name, resolverUrl, officialDomain: rz.ok ? rz.host : "" });
+  // cozum basarisizsa mevcut officialDomain ezilmesin
+  const r = upsertBrand({ name, resolverUrl, officialDomain: rz.ok ? rz.host : undefined });
   r.entry.lastResolveNote = rz.ok ? `http ${rz.status}` : rz.note;
   log(`>> marka ${r.created ? "eklendi" : "guncellendi"}: ${name} -> ${rz.ok ? rz.host : "(cozulemedi, resolver timer tekrarlar)"}`);
   res.json({ ok: true, created: r.created, officialDomain: r.entry.officialDomain, note: r.entry.lastResolveNote });
@@ -281,7 +282,7 @@ app.post("/api/brands/update", async (req, res) => {
   let officialDomain;
   if (resolverUrl) {
     const rz = await httpResolve(resolverUrl);
-    officialDomain = rz.ok ? rz.host : "";
+    if (rz.ok) officialDomain = rz.host;  // basarisiz cozumde mevcut korunur
   }
   const r = upsertBrand({ name, resolverUrl: resolverUrl || undefined, officialDomain });
   log(`>> marka guncellendi: ${name} -> ${r.entry.officialDomain || "(cozulemedi)"}`);
