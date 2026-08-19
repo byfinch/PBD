@@ -128,13 +128,16 @@ tbody tr:last-child td{border-bottom:none}
 .mon-chip{display:inline-flex;align-items:center;gap:6px}
 .mon-chip button{background:none;border:none;color:var(--dim);font:inherit;font-size:11px;cursor:pointer;padding:0 1px}
 .mon-chip button:hover{color:var(--fail)}
-.det{border:1px solid var(--border);border-radius:4px;padding:10px 12px;margin-bottom:8px;background:var(--surface2)}
-.det-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.det-domain{color:#b8e6c8;font-weight:700}
-.det-meta{color:var(--dim);font-size:10.5px;flex:1;min-width:120px}
-.det-note{color:var(--faint);font-size:10px;margin-top:6px}
-.det-ev{width:46px;height:34px;object-fit:cover;object-position:top;border:1px solid var(--border);border-radius:3px;cursor:zoom-in}
-.det-act{display:flex;gap:6px}
+.det-table{max-height:400px;overflow-y:auto}
+.det-table::-webkit-scrollbar{width:6px}
+.det-table::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.det-row{display:flex;align-items:center;gap:10px;padding:6px 2px;border-bottom:1px solid rgba(28,43,33,.6);font-size:11.5px}
+.det-row:last-child{border-bottom:none}
+.det-domain{color:#b8e6c8;font-weight:700;white-space:nowrap}
+.det-fd{color:var(--cyan);white-space:nowrap}
+.det-meta{color:var(--dim);font-size:10.5px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.det-ev{width:48px;height:32px;object-fit:cover;object-position:top;border:1px solid var(--border);border-radius:3px;cursor:zoom-in;flex-shrink:0}
+.det-act{display:flex;gap:6px;flex-shrink:0}
 .btn-fire{background:var(--acc);border:none;color:#02130a;font:inherit;font-size:9.5px;font-weight:700;letter-spacing:1.5px;
   padding:6px 12px;cursor:pointer;border-radius:3px;text-transform:uppercase;transition:.15s}
 .btn-fire:hover:not(:disabled){box-shadow:0 0 12px rgba(0,232,92,.35)}
@@ -389,20 +392,18 @@ function renderMonitors(d) {
   $('#monChips').innerHTML = watch.map((w) => `
     <span class="chip info mon-chip" title="ekleme: ${esc((w.addedTs || '').slice(0, 10))}${w.lastCheck ? ' · son kontrol: ' + fmtT(w.lastCheck) : ''}">${esc(w.stem)}N.${esc(w.tld)}<button data-mon="${esc(w.domain)}" title="izlemeyi kaldır">×</button></span>`,
   ).join('') || '<span class="t-dim" style="font-size:10.5px">— saldırılan hedefler otomatik eklenir —</span>';
-  $('#detList').innerHTML = det.map((x) => `
-    <div class="det">
-      <div class="det-top">
-        ${x.evidence ? `<img class="det-ev" src="/evidence/${esc(x.evidence)}" data-ev="/evidence/${esc(x.evidence)}" alt="">` : ''}
-        <span class="det-domain">${esc(x.domain)}</span>
-        <span class="det-meta">${esc(x.ip || '')} · ${fmtT(x.ts)} · üst: ${esc((x.parentTarget || '').replace(/^https?:\/\//, ''))}</span>
-        <span class="det-act">
-          <button class="btn-fire" data-app="${esc(x.domain)}">Saldırı Başlat</button>
-          <button class="btn-dim" data-dis="${esc(x.domain)}">Yoksay</button>
-        </span>
-      </div>
-      ${x.note ? `<div class="det-note"># ${esc(x.note)}</div>` : ''}
+  $('#detList').innerHTML = det.length ? `<div class="det-table">` + det.map((x) => `
+    <div class="det-row" title="${esc(x.note || '')}${x.redirectChain?.length > 1 ? ' · zincir: ' + esc(x.redirectChain.join(' → ')) : ''}">
+      ${x.evidence ? `<img class="det-ev" src="/evidence/${esc(x.evidence)}" data-ev="/evidence/${esc(x.evidence)}" alt="">` : ''}
+      <span class="det-domain">${esc(x.domain)}</span>
+      ${x.finalDomain && x.finalDomain !== x.domain ? `<span class="det-fd">→ ${esc(x.finalDomain)}</span>` : ''}
+      <span class="det-meta">${esc(x.ip || '')} · ${fmtT(x.ts)}</span>
+      <span class="det-act">
+        <button class="btn-fire" data-app="${esc(x.domain)}">Başlat</button>
+        <button class="btn-dim" data-dis="${esc(x.domain)}">Yoksay</button>
+      </span>
     </div>`,
-  ).join('') || '<div class="empty"># bekleyen tespit yok</div>';
+  ).join('') + `</div>` || '<div class="empty"># bekleyen tespit yok</div>';
   document.querySelectorAll('[data-mon]').forEach((b) => b.addEventListener('click', async () => {
     await api('/api/monitors/remove', { domain: b.dataset.mon }); poll();
   }));

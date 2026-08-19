@@ -14,7 +14,7 @@ import { appendFileSync, readFileSync, writeFileSync, existsSync, mkdirSync } fr
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolve4 } from "node:dns/promises";
-import { Agent, fetch as uFetch } from "undici";
+import { Agent, fetch as uFetch, request as uRequest } from "undici";
 import { RawCdp, sleep } from "./rawcdp.mjs";
 import { loadEnv, loadProfiles, startProfile, stopProfile } from "./lib/mlx.mjs";
 
@@ -72,7 +72,7 @@ async function panelLog(text) {
 }
 
 // ---- kanit: musait profille screenshot, olmazsa HTTP title/status ----
-async function captureEvidence(domain) {
+async function captureEvidence(domain, probe) {
   try {
     loadEnv();
     const mapping = loadProfiles();
@@ -93,15 +93,61 @@ async function captureEvidence(domain) {
   } catch (e) {
     console.log(`profil kanit atlaniyor (${String(e.message || e).slice(0, 60)}) — HTTP fallback`);
   }
-  try {
-    const r = await uFetch(`https://${domain}/`, { dispatcher: tls, headers: { "User-Agent": "Mozilla/5.0" } });
-    const html = (await r.text()).slice(0, 20000);
-    const title = (html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] || "").trim().slice(0, 120);
-    return { evidence: null, note: `http ${r.status} title="${title}"` };
-  } catch (e2) {
-    return { evidence: null, note: `http hata: ${String(e2.message || e2).slice(0, 80)}` };
-  }
+  if (probe) return { evidence: null, note: `http ${probe.status} title="${probe.title}"${probe.error ? " " + probe.error : ""}` };
+  return { evidence: null, note: "kanit yok" };
 }
+
+/** redirect zincirini takip et (maks 5 hop, hop basina 10sn). */
+async function httpProbe(domain) {
+  const chain = [];
+  let url = `https://${domain}/`;
+  let status = 0, title = "", error = "";
+  try {
+    for (let hop = 0; hop < 5; hop++) {
+      chain.push(new URL(url).hostname);
+      const r = await uRequest(url, {
+        method: "GET", dispatcher: tls, maxRedirections: 0,
+        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36" },
+        signal: AbortSignal.timeout(10000),
+      });
+      status = r.statusCode;
+      if (status >= 300 && status < 400 && r.headers.location) {
+        url = new URL(r.headers.location, url).toString();
+        await r.body.dump().catch(() => {});
+        continue;
+      }
+      if (status === 200) {
+        const html = (await r.body.text()).slice(0, 20000);
+        title = (html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] || "").trim().slice(0, 120);
+      } else {
+        await r.body.dump().catch(() => {});
+      }
+      break;
+    }
+  } catch (e) {
+    error = String(e.message || e).slice(0, 80);
+  }
+  let finalDomain = domain;
+  try { finalDomain = new URL(url).hostname.replace(/^www\./, ""); } catch {}
+  return { chain, finalDomain, status, title, error };
+}
+
+const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; } };
+
+/** redirect-main: official/izlenen/ayni-aile ana sitesine yonlenme (tespit sayilmaz). */
+function classify(w, domain, probe) {
+  const final = probe.finalDomain;
+  if (!final || final === domain) return "pending"; // dogrudan icerik / probe basarisiz
+  const officialHost = hostOf(w.official);
+  if (officialHost && final === officialHost) return "redirect-main";
+  if (monitors.watch.some((x) => x.domain === final)) return "redirect-main";
+  const famRe = new RegExp(`^${w.stem}\\d+\\.${w.tld.replace(/\./g, "\\.")}$`, "i");
+  if (famRe.test(final)) return "redirect-main";
+  return "pending";
+}
+
+const watchOf = (domain) =>
+  monitors.watch.find((x) => new RegExp(`^${x.stem}\\d+\\.${x.tld.replace(/\./g, "\\.")}$`, "i").test(domain)) || monitors.watch[0];
 
 async function scanWatch(w) {
   // merkez numara: kayitli num yoksa state'te bilinen bu desenin en buyuk numarasi
@@ -132,15 +178,38 @@ async function scanWatch(w) {
   w.lastCheck = new Date().toISOString();
 
   for (const a of fresh) {
-    // ayni domain zaten pending ise tekrarlama
-    if (detections.detections.some((x) => x.domain === a.domain && x.status === "pending")) continue;
-    console.log(`YENI DOMAIN: ${a.domain} (${a.ip})`);
-    const ev = await captureEvidence(a.domain);
-    detections.detections.push({
+    // ayni domain zaten kayitli ise tekrarlama
+    if (detections.detections.some((x) => x.domain === a.domain)) continue;
+    console.log(`YENI DOMAIN: ${a.domain} (${a.ip}) — redirect analizi`);
+    const probe = await httpProbe(a.domain);
+    const cls = classify(w, a.domain, probe);
+    const base = {
       domain: a.domain, ip: a.ip,
       parentTarget: `https://${w.domain}/`,
       official: w.official || "", brand: w.brand || "",
-      ts: new Date().toISOString(), status: "pending",
+      ts: new Date().toISOString(),
+      finalDomain: probe.finalDomain,
+      redirectChain: probe.chain,
+    };
+    if (cls === "redirect-main") {
+      console.log(`  redirect-main: ${probe.chain.join(" -> ")} -> ${probe.finalDomain} (tespit sayilmadi)`);
+      detections.detections.push({ ...base, status: "redirect-main", evidence: null, note: `ana siteye yonlendiriyor: ${probe.finalDomain}` });
+      appendFileSync(
+        resolve(SCRIPT_DIR, "reports.jsonl"),
+        JSON.stringify({
+          ts: new Date().toISOString(), source: "monitor",
+          target: `https://${a.domain}/`, result: "redirect-main",
+          note: `ana siteye yonlendiriyor: ${probe.finalDomain} (desen: ${w.stem}N.${w.tld})`,
+          ms: 0,
+        }) + "\n"
+      );
+      await panelLog(`redirect-main: ${a.domain} -> ${probe.finalDomain} (tespit sayilmadi)`);
+      continue;
+    }
+    const ev = await captureEvidence(a.domain, probe);
+    detections.detections.push({
+      ...base,
+      status: "pending",
       evidence: ev.evidence, note: ev.note,
     });
     appendFileSync(
@@ -159,6 +228,29 @@ async function scanWatch(w) {
 
 // ---- ana akis ----
 if (args.domain) addWatch(args.domain, args.official || "", args.brand || "");
+
+// --reclassify: pending tespitleri redirect mantigiyla yeniden degerlendir (tek seferlik temizlik)
+if (args.reclassify) {
+  let changed = 0;
+  for (const det of detections.detections.filter((d) => d.status === "pending")) {
+    const w = watchOf(det.domain);
+    if (!w) continue;
+    const probe = await httpProbe(det.domain);
+    det.finalDomain = probe.finalDomain;
+    det.redirectChain = probe.chain;
+    if (classify(w, det.domain, probe) === "redirect-main") {
+      det.status = "redirect-main";
+      det.note = `ana siteye yonlendiriyor: ${probe.finalDomain}`;
+      det.resolvedTs = new Date().toISOString();
+      changed++;
+      console.log(`redirect-main: ${det.domain} -> ${probe.finalDomain}`);
+    }
+  }
+  writeJ(DETECTIONS, detections);
+  console.log(`SONUC: reclassify ${changed} tespit redirect-main oldu, ${detections.detections.filter((d) => d.status === "pending").length} pending kaldi`);
+  process.exit(0);
+}
+
 if (!monitors.watch.length) {
   console.log("izlenen desen yok — once --domain ile ekle (panel fire da otomatik ekler)");
   process.exit(0);
