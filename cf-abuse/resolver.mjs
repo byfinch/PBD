@@ -65,6 +65,9 @@ for (const b of store.brands) {
     try { r = await profileResolve(b.resolverUrl); } catch (e) { r = { ok: false, note: String(e.message || e).slice(0, 60) }; }
   }
   if (!r.ok || !r.host) { failed++; console.log(`${b.name}: COZULEMEDI (${r.note || "?"})`); continue; }
+  // guvenlik: final host kisalticinin kendisiyse cozum sayma (bot duvarinda takildi)
+  const shortHost = new URL(b.resolverUrl).hostname.replace(/^www\./, "");
+  if (r.host === shortHost) { failed++; console.log(`${b.name}: COZULEMEDI (kisalticide takildi: ${r.host})`); continue; }
   const old = b.officialDomain;
   if (old !== r.host) {
     b.officialDomain = r.host;
