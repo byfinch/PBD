@@ -306,17 +306,25 @@ let page = 1, allReports = [], allEvidence = [];
 // bir rapor satirinin kanitlari: kosunun zaman penceresine dusen KANIT gorselleri
 // (ara/debug screenshot'lari gosterilmez; sadece form-dolu ve submit-sonrasi)
 function evFor(r) {
+  const KANIT_RE = /^kanit-(?!monitor-).+-(filled|result)-\d+\.jpe?g$/i;
+  // runId ile KESIN eslesme (eski kayitlar icin zaman penceresi fallback)
+  if (r.runId) {
+    return allEvidence
+      .filter((e) => KANIT_RE.test(e.name) && e.name.includes(`-${r.runId}-`))
+      .sort((a, b) => a.mtime - b.mtime);
+  }
   if (!r.ts) return [];
   const end = new Date(r.ts).getTime();
   const start = end - (r.ms ?? 0) - 15000;
   return allEvidence
-    .filter((e) => /^kanit-(?!monitor-).+-(filled|result)-\d+\.jpe?g$/i.test(e.name) && e.mtime >= start && e.mtime <= end + 20000)
+    .filter((e) => KANIT_RE.test(e.name) && e.mtime >= start && e.mtime <= end + 20000)
     .sort((a, b) => a.mtime - b.mtime);
 }
 const evLabel = (name) => {
   const m = name.match(/^kanit-(.+?)-(filled|result)-/);
   if (!m) return name;
-  return `${m[1]} · ${m[2] === 'filled' ? 'DOLDURULMUŞ FORM' : 'GÖNDERİM SONUCU'}`;
+  const prof = m[1].replace(/-\d{13}$/, '');  // runId'yi etiketten ayikla
+  return `${prof} · ${m[2] === 'filled' ? 'DOLDURULMUŞ FORM' : 'GÖNDERİM SONUCU'}`;
 };
 function openEvidence(r) {
   const ev = evFor(r);

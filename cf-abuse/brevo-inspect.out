@@ -1,0 +1,243 @@
+port: 59500
+{
+  "url": "https://onboarding.brevo.com/account/register",
+  "title": "Marketing made simple - Brevo",
+  "inputs": [
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "name": "talon",
+      "id": "talon",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "name": "email",
+      "id": "email",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "password",
+      "name": "password",
+      "id": "password",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "TEXTAREA",
+      "type": "textarea",
+      "name": "g-recaptcha-response",
+      "id": "g-recaptcha-response-100000",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "name": "ot-group-id-C0004",
+      "id": "ot-group-id-C0004",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "name": "ot-group-id-C0002",
+      "id": "ot-group-id-C0002",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "name": "ot-group-id-C0003",
+      "id": "ot-group-id-C0003",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "name": "vendor-search-handler",
+      "id": "vendor-search-handler",
+      "placeholder": "Search…",
+      "aria": "Cookie list search",
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "name": "",
+      "id": "select-all-hosts-groups-handler",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "name": "",
+      "id": "select-all-vendor-groups-handler",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "name": "",
+      "id": "select-all-vendor-leg-handler",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "name": "",
+      "id": "chkbox-id",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    }
+  ],
+  "buttons": [
+    {
+      "tag": "BUTTON",
+      "type": "button",
+      "text": "Sign up with Google",
+      "id": "sso-button-signup_google",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "button",
+      "text": "Sign up with Apple",
+      "id": "sso-button-signup_apple",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "button",
+      "text": "",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Create your account",
+      "id": "register-form-create-button",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Cookies Settings",
+      "id": "onetrust-pc-btn-handler",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Reject All",
+      "id": "onetrust-reject-all-handler",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Accept All Cookies",
+      "id": "onetrust-accept-btn-handler",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "",
+      "id": "close-pc-btn-handler",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Back Button",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Filter Button",
+      "id": "filter-btn-handler",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Clear",
+      "id": "clear-filters-handler",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Apply",
+      "id": "filter-apply-handler",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Cancel",
+      "id": "filter-cancel-handler",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Confirm My Choices",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Allow All",
+      "id": "accept-recommended-btn-handler",
+      "visible": false
+    }
+  ],
+  "iframes": [
+    {
+      "src": "https://www.google.com/recaptcha/enterprise/anchor?ar=1&k=6LcVR9QpAAAAAJzG_mjkdTL_dogYVxV7iO3OK3Gp&co=aHR0cHM6Ly9vbmJvYX",
+      "title": "reCAPTCHA"
+    },
+    {
+      "src": "",
+      "title": ""
+    },
+    {
+      "src": "",
+      "title": "onetrust-text-resize"
+    }
+  ],
+  "links": [
+    {
+      "t": "Sign in",
+      "href": "https://account-app.brevo.com/account/login"
+    }
+  ],
+  "bodySnippet": "Marketing made simple\n\nFree to use – no credit card required.\n\nSign up with Google\nSign up with Apple\nOR\nEmail address*\nCreate your password*\nCreate your account\n\nBy signing up, you are creating a Brevo account, and you agree to Brevo's Terms of Use and Privacy Policy\n\nAlready have an account? Sign in\n\nBy clicking “Accept All Cookies”, you agree to the storing of cookies in your browser to enhance site navigation, analyze site usage, and provide our ad partners with information for ad personalization and measurement.\n\nCookies Settings Reject All Accept All Cookies"
+}

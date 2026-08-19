@@ -1,0 +1,136 @@
+port: 49400
+{
+  "url": "https://mailtrap.io/register/signup",
+  "title": "Mailtrap - Email Delivery Platform",
+  "inputs": [
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "name": "authenticity_token",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "name": "user[fingerprint]",
+      "id": "user_fingerprint",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "email",
+      "name": "user[email]",
+      "id": "user_email",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "password",
+      "name": "user[password]",
+      "id": "user_password",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "password",
+      "name": "user[password_confirmation]",
+      "id": "user_password_confirmation",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "TEXTAREA",
+      "type": "textarea",
+      "name": "g-recaptcha-response",
+      "id": "g-recaptcha-response",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "name": "commit",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "TEXTAREA",
+      "type": "textarea",
+      "name": "g-recaptcha-response",
+      "id": "g-recaptcha-response-100000",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    }
+  ],
+  "buttons": [
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Sign Up With Your Email",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "text": "Sign Up",
+      "id": "",
+      "visible": true
+    }
+  ],
+  "iframes": [
+    {
+      "src": "https://www.recaptcha.net/recaptcha/api2/anchor?ar=1&k=6Lc8JW0UAAAAAMGd_cYaTZ__-sTwb2eDg7K6x3sB&co=aHR0cHM6Ly9tYWlsdHJhc",
+      "title": "reCAPTCHA"
+    },
+    {
+      "src": "",
+      "title": ""
+    },
+    {
+      "src": "https://www.recaptcha.net/recaptcha/api2/anchor?ar=1&k=6LdJ3YQUAAAAAOL6bpicn8lexwkMCq8pZErZZRVJ&co=aHR0cHM6Ly9tYWlsdHJhc",
+      "title": "reCAPTCHA"
+    },
+    {
+      "src": "https://www.recaptcha.net/recaptcha/api2/bframe?hl=en&v=xg_pWYS8-HRESiV6Rdg4aY_R&k=6Lc8JW0UAAAAAMGd_cYaTZ__-sTwb2eDg7K6x",
+      "title": "recaptcha challenge expires in two minutes"
+    }
+  ],
+  "links": [
+    {
+      "t": "",
+      "href": "https://mailtrap.io/register/signup#"
+    },
+    {
+      "t": "Log In",
+      "href": "https://mailtrap.io/signin"
+    },
+    {
+      "t": "Sign Up",
+      "href": "https://mailtrap.io/register/signup?ref=header"
+    },
+    {
+      "t": "Log In",
+      "href": "https://mailtrap.io/signin"
+    },
+    {
+      "t": "Sign Up",
+      "href": "https://mailtrap.io/register/signup?ref=header"
+    }
+  ],
+  "bodySnippet": "Log In Sign Up\nCreate Free Account\n\nBy creating a Mailtrap account, you agree to our\nTerms of Service and Privacy Policy\n\n Use Google account\n \n Use Github account\n \n Use Office 365 account\n\nSign Up With Your Email\nEmail\nPassword\nConfirmation\n\nYou will receive the confirmation email after submitting this form.\n\nUse an email address you check regularly. We may contact you about important account or sending activity issues.\n\nNo credit card needed\nMailtrap\nPricing\nStatus\nChangelog\nPublic Roadmap\nPrivacy Policy\nTerms of Service\nNavigational Information\nDPA\nDORA\nTrust & Security\nDo Not Sell or Share My Data\nRailsware Experience\nRailsware Blog\nCoupler.io\nTitanApps.io\nContact\nemail: support[at]mailtrap.io\n  \n\n© Railsware Products Studio LLC\n\nWhat is Mailtrap?\n\nMailtrap is an email delivery platform for testing, sending, and controlling your email infrastructure. Intended for dev and marketing teams, Mailtrap allows you to send transactional and marketing emails, as well as inspect and debug emails in staging, dev, and QA environments. The platform was developed and is currently owned by Railsware Products Studio LLC, a premium software development consulting company headquartered in Los Angeles."
+}

@@ -1,0 +1,304 @@
+port: 53467
+{
+  "url": "https://www.smtp2go.com/404?loc=app",
+  "title": "Page not found - SMTP2GO",
+  "inputs": [
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "rate",
+      "id": "radio-monthly",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "rate",
+      "id": "radio-annual",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "email",
+      "name": "email",
+      "id": "input-email",
+      "placeholder": "name@company.com",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "name": "fullname",
+      "id": "input-name",
+      "placeholder": "John Smith",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "name": "company",
+      "id": "input-company",
+      "placeholder": "My Company",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "password",
+      "name": "password",
+      "id": "signup-password",
+      "placeholder": "Password",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "tel",
+      "name": "phone",
+      "id": "input-phone",
+      "placeholder": "(123) 456-7890",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "name": "countryName",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "name": "countryCode",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "number",
+      "name": "verification-number-1",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "number",
+      "name": "verification-number-2",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "number",
+      "name": "verification-number-3",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "number",
+      "name": "verification-number-4",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "number",
+      "name": "verification-number-5",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "name": "plan-id",
+      "id": "plan-id",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "name": "plan-type",
+      "id": "plan-type",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "name": "signup",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "name": "affiliate",
+      "id": "affiliate",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "name": "hiddenRecaptchaSignup",
+      "id": "hiddenRecaptchaSignup",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "name": "g-recaptcha-response",
+      "id": "g-recaptcha-response",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "name": "",
+      "id": "signup-step-1",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "name": "",
+      "id": "signup-step-sms",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "name": "",
+      "id": "signup-submit",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "name": "",
+      "id": "signup-submit-sms",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "name": "captcha_response",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "name": "fullname",
+      "id": "",
+      "placeholder": "Your Name",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "password",
+      "name": "password",
+      "id": "",
+      "placeholder": "Enter Password",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "name": "",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    }
+  ],
+  "buttons": [
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "text": "Continue",
+      "id": "signup-step-1",
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "text": "Verify by SMS",
+      "id": "signup-step-sms",
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "text": "Sign Up",
+      "id": "signup-submit",
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "text": "Continue",
+      "id": "signup-submit-sms",
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "text": "Log In →",
+      "id": "",
+      "visible": false
+    }
+  ],
+  "iframes": [],
+  "links": [
+    {
+      "t": "Sign Up",
+      "href": "https://www.smtp2go.com/pricing"
+    }
+  ],
+  "bodySnippet": "\nError 404\nThe page you were looking for no longer exists.\n\nYou may have mistyped the address or the page may have been moved...\n\nTake me to the SMTP2GO homepage"
+}

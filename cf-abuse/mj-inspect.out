@@ -1,0 +1,10 @@
+port: 64650
+{
+  "url": "https://app.mailjet.com/signup",
+  "title": "Mailjet",
+  "inputs": [],
+  "buttons": [],
+  "iframes": [],
+  "links": [],
+  "bodySnippet": ""
+}

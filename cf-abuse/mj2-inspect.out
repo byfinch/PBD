@@ -1,0 +1,271 @@
+port: 60329
+{
+  "url": "https://app.mailjet.com/signup",
+  "title": "Mailjet",
+  "inputs": [
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "name": "firstName",
+      "id": "firstName",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "name": "lastName",
+      "id": "lastName",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "name": "email",
+      "id": "email",
+      "placeholder": "ex: firstname@example.com",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "password",
+      "name": "password",
+      "id": "password",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "TEXTAREA",
+      "type": "textarea",
+      "name": "g-recaptcha-response",
+      "id": "g-recaptcha-response",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "name": "ot-group-id-C0002",
+      "id": "ot-group-id-C0002",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "name": "ot-group-id-C0003",
+      "id": "ot-group-id-C0003",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "name": "ot-group-id-C0004",
+      "id": "ot-group-id-C0004",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "name": "vendor-search-handler",
+      "id": "vendor-search-handler",
+      "placeholder": "Search…",
+      "aria": "Cookie list search",
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "name": "",
+      "id": "chkbox-id",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "name": "",
+      "id": "select-all-hosts-groups-handler",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "name": "",
+      "id": "select-all-vendor-groups-handler",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "name": "",
+      "id": "select-all-vendor-leg-handler",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    }
+  ],
+  "buttons": [
+    {
+      "tag": "BUTTON",
+      "type": "button",
+      "text": "",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Create account",
+      "id": "create-account-btn",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Cookies Settings",
+      "id": "onetrust-pc-btn-handler",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Reject All",
+      "id": "onetrust-reject-all-handler",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Allow All",
+      "id": "onetrust-accept-btn-handler",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Allow All",
+      "id": "accept-recommended-btn-handler",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Back Button",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Filter Icon",
+      "id": "filter-btn-handler",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Clear",
+      "id": "clear-filters-handler",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Apply",
+      "id": "filter-apply-handler",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Cancel",
+      "id": "filter-cancel-handler",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Save Settings",
+      "id": "",
+      "visible": false
+    }
+  ],
+  "iframes": [
+    {
+      "src": "https://www.google.com/recaptcha/api2/anchor?ar=1&k=6Ld6d70fAAAAADrfs8rqFGafJDWKkjjTBX0ToOWo&co=aHR0cHM6Ly9hcHAubWFpbGpl",
+      "title": "reCAPTCHA"
+    },
+    {
+      "src": "",
+      "title": ""
+    },
+    {
+      "src": "https://js.stripe.com/v3/m-outer-3437aaddcdf6922d623e172c2d6f9278.html#url=https%3A%2F%2Fapp.mailjet.com%2Fsignup&title=",
+      "title": ""
+    },
+    {
+      "src": "https://js.stripe.com/v3/m-outer-3437aaddcdf6922d623e172c2d6f9278.html#url=https%3A%2F%2Fapp.mailjet.com%2Fsignup&title=",
+      "title": ""
+    },
+    {
+      "src": "",
+      "title": "onetrust-text-resize"
+    },
+    {
+      "src": "https://www.google.com/recaptcha/api2/bframe?hl=en&v=xg_pWYS8-HRESiV6Rdg4aY_R&k=6Ld6d70fAAAAADrfs8rqFGafJDWKkjjTBX0ToOWo",
+      "title": "recaptcha challenge expires in two minutes"
+    }
+  ],
+  "links": [
+    {
+      "t": "Log in.",
+      "href": "https://app.mailjet.com/signin"
+    }
+  ],
+  "bodySnippet": "A great place to start\n\nQuick and easy core features that help you ramp up your email marketing\n\nAPIs, SMTP relay, web hooks\n\nAdvanced Email Editor\n\nFree email templates\n\nFree sign-up forms\n\nBasic statistics\n\nCopyright © 2026 Mailjet. All rights reserved\n\nTerms of Service|Privacy Policy|Acceptable Use Policy\nSign Up For Free\n\nNo commitment. No hidden fees.\n\nFirst name\n\nLast name\n\nEmail\n\nPassword\n\nMin. 8 characters, 1 letter, 1 number and 1 special character\n\nCreate account\n\nAlready have an account? Log in.\n\nBy clicking the \"Create account\" button, I expressly agree to the Mailjet Terms of Service and understand that my account information will be used according to Mailjet Privacy Policy\n\nManage cookies\nWe use cookies and similar technologies to operate our site. With your consent, we also use performance, analytics, and advertising cookies. Strictly Necessary cookies are always on. You can accept all cookies, reject all optional cookies or choose specific categories. For more information, please see our Cookie policy.\nCookies Settings\nReject All\nAllow All"
+}

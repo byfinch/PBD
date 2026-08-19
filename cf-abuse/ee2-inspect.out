@@ -1,0 +1,176 @@
+port: 63023
+{
+  "url": "https://app.elasticemail.com/404",
+  "title": "Account - Dashboard",
+  "inputs": [
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "name": "",
+      "id": "ckySwitchfunctional",
+      "placeholder": "",
+      "aria": "Enable Functional",
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "name": "",
+      "id": "ckySwitchanalytics",
+      "placeholder": "",
+      "aria": "Enable Analytics",
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "name": "",
+      "id": "ckySwitchperformance",
+      "placeholder": "",
+      "aria": "Enable Performance",
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "name": "",
+      "id": "ckySwitchadvertisement",
+      "placeholder": "",
+      "aria": "Enable Advertisement",
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "name": "",
+      "id": "ckySwitchother",
+      "placeholder": "",
+      "aria": "Enable Uncategorized",
+      "visible": true
+    }
+  ],
+  "buttons": [
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Customize",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Use Necessary Only",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Accept All",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Use Necessary Only",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "button",
+      "text": "Previous page",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "button",
+      "text": "Customer support",
+      "id": "",
+      "visible": true
+    }
+  ],
+  "iframes": [],
+  "links": [],
+  "bodySnippet": "We value your privacy\n\nElastic Email uses cookies to ensure the stability of website operation, determine your access privileges on our website, complete and support a current activity, and track website usage to provide you with the best experience possible. Cookie Policy\n\nCustomize\nUse Necessary Only\nAccept All\nError 404\nOh dear, it seems like there’s nothing in here.\nThe page you are looking for does not exist or some other error occurred. Go back to the \nPrevious page\n or contact our \nCustomer support\n for help."
+}

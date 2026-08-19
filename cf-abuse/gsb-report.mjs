@@ -81,6 +81,7 @@ const DETAILS = [
 ];
 
 const t0 = Date.now();
+const RUN_ID = t0;
 let result = "error";
 let note = "";
 
@@ -155,7 +156,7 @@ async function attempt() {
     });
     console.log("detay:", fillRes.result?.value ?? "?");
     // KANIT 1: form dolu (tam sayfa)
-    await cdp.screenshot(`${SCRIPT_DIR}/evidence/kanit-${profile.name}-filled-${Date.now()}.jpg`, 70, true);
+    await cdp.screenshot(`${SCRIPT_DIR}/evidence/kanit-${profile.name}-${RUN_ID}-filled-${Date.now()}.jpg`, 70, true);
 
     if (DRY) { result = "dry-ok"; note = "submit atlandi"; return result; }
 
@@ -185,7 +186,7 @@ async function attempt() {
     }
     console.log("sunucu cevabi:", result);
     // KANIT 2: status kutusu formun altinda — tam sayfa cek (form submit sonrasi sifirlanir)
-    await cdp.screenshot(`${SCRIPT_DIR}/evidence/kanit-${profile.name}-result-${Date.now()}.jpg`, 70, true);
+    await cdp.screenshot(`${SCRIPT_DIR}/evidence/kanit-${profile.name}-${RUN_ID}-result-${Date.now()}.jpg`, 70, true);
     return result;
   } catch (err) {
     note = String(err).slice(0, 200);
@@ -221,6 +222,6 @@ for (let att = 1; att <= 3; att++) {
 
 appendFileSync(
   resolve(SCRIPT_DIR, "reports.jsonl"),
-  JSON.stringify({ ts: new Date().toISOString(), source: "gsb", profile: profile.name, target: TARGET, result, note, ms: Date.now() - t0 }) + "\n"
+  JSON.stringify({ ts: new Date().toISOString(), runId: RUN_ID, source: "gsb", profile: profile.name, target: TARGET, result, note, ms: Date.now() - t0 }) + "\n"
 );
 console.log(`SONUC: ${result} | ${profile.name} | ${Math.round((Date.now() - t0) / 1000)}sn`);

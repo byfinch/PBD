@@ -1,0 +1,101 @@
+port: 56125
+{
+  "url": "https://www.virustotal.com/gui/join-us",
+  "title": "VirusTotal - Join us",
+  "inputs": [
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "name": "",
+      "id": "firstName",
+      "placeholder": "Enter your first name",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "name": "",
+      "id": "lastName",
+      "placeholder": "Enter your last name",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "email",
+      "name": "",
+      "id": "email",
+      "placeholder": "Enter your email address",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "name": "",
+      "id": "userId",
+      "placeholder": "Enter a username",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "password",
+      "name": "",
+      "id": "password",
+      "placeholder": "Min. 8 characters",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "password",
+      "name": "",
+      "id": "passwordRepeat",
+      "placeholder": "Min. 8 characters",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "name": "",
+      "id": "tosCheckbox",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    }
+  ],
+  "buttons": [
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "See account settings",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Create new account",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Join us",
+      "id": "submit",
+      "visible": true
+    }
+  ],
+  "iframes": [],
+  "links": [
+    {
+      "t": "Sign in",
+      "href": "https://www.virustotal.com/gui/sign-in"
+    }
+  ],
+  "bodySnippet": "Go back\nJoin our community\nFirst name\nYour selected username may be displayed if you contribute to comments, public collections, and other public resources.\nLast name\nEmail\nUsername\nPassword\nRepeat password\nYes, I have read and agree to the Terms of Service. Terms of Service.\nBy signing up, I acknowledge that I have read the Privacy Notice.\nJoin us\nOr continue with\nDo you have an account? Sign in\nForgot password?"
+}

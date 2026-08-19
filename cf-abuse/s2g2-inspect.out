@@ -1,0 +1,817 @@
+port: 52640
+{
+  "url": "https://www.smtp2go.com/pricing/",
+  "title": "SMTP2GO Pricing | Plans From $15/mo (Free Tier Available)",
+  "inputs": [
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "rate",
+      "id": "radio-monthly",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "rate",
+      "id": "radio-annual",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "email",
+      "name": "email",
+      "id": "input-email",
+      "placeholder": "name@company.com",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "name": "fullname",
+      "id": "input-name",
+      "placeholder": "John Smith",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "name": "company",
+      "id": "input-company",
+      "placeholder": "My Company",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "password",
+      "name": "password",
+      "id": "signup-password",
+      "placeholder": "Password",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "tel",
+      "name": "phone",
+      "id": "input-phone",
+      "placeholder": "(123) 456-7890",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "name": "countryName",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "name": "countryCode",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "number",
+      "name": "verification-number-1",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "number",
+      "name": "verification-number-2",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "number",
+      "name": "verification-number-3",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "number",
+      "name": "verification-number-4",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "number",
+      "name": "verification-number-5",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "name": "plan-id",
+      "id": "plan-id",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "name": "plan-type",
+      "id": "plan-type",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "name": "signup",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "name": "affiliate",
+      "id": "affiliate",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "name": "hiddenRecaptchaSignup",
+      "id": "hiddenRecaptchaSignup",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "name": "g-recaptcha-response",
+      "id": "g-recaptcha-response",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "name": "",
+      "id": "signup-step-1",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "name": "",
+      "id": "signup-step-sms",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "name": "",
+      "id": "signup-submit",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "name": "",
+      "id": "signup-submit-sms",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "name": "captcha_response",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "name": "fullname",
+      "id": "",
+      "placeholder": "Your Name",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "password",
+      "name": "password",
+      "id": "",
+      "placeholder": "Enter Password",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "name": "",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "daterange",
+      "id": "yearly",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "daterange",
+      "id": "monthly",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "currency",
+      "id": "usd",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "currency",
+      "id": "eur",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "currency",
+      "id": "gbp",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "currency",
+      "id": "aud",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "currency",
+      "id": "nzd",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "rate",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "rate",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "name": "",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "rate",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "rate",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "name": "",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "rate",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "rate",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "name": "",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "rate",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "rate",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "name": "",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "rate",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "rate",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "name": "",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "rate",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "rate",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "name": "",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "rate",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "rate",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "name": "",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "rate",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "name": "rate",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "name": "",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "name": "",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "name": "",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "name": "",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "name": "",
+      "id": "",
+      "placeholder": "",
+      "aria": null,
+      "visible": true
+    },
+    {
+      "tag": "TEXTAREA",
+      "type": "textarea",
+      "name": "g-recaptcha-response",
+      "id": "g-recaptcha-response-100000",
+      "placeholder": "",
+      "aria": null,
+      "visible": false
+    }
+  ],
+  "buttons": [
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "text": "Continue",
+      "id": "signup-step-1",
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "text": "Verify by SMS",
+      "id": "signup-step-sms",
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "text": "Sign Up",
+      "id": "signup-submit",
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "text": "Continue",
+      "id": "signup-submit-sms",
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "text": "Log In →",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Yearly 2 months free",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "USD",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "USD",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "EUR",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "GBP",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "AUD",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "NZD",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "text": "Get Started",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "text": "Get Started",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "text": "Get Started",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "text": "Get Started",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "text": "Get Started",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "text": "Get Started",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "text": "Get Started",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "text": "Create Your Plan",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "text": "Get Started",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Monthly",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Annually",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "text": "Get Free",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "text": "Get Starter",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "submit",
+      "text": "Get Professional",
+      "id": "",
+      "visible": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "Hide Features and Plans",
+      "id": "show-more-btn",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "View Features and Compare Plans",
+      "id": "",
+      "visible": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "text": "View Features and Compare Plans",
+      "id": "",
+      "visible": false
+    }
+  ],
+  "iframes": [
+    {
+      "src": "",
+      "title": ""
+    },
+    {
+      "src": "https://www.google.com/recaptcha/api2/anchor?ar=1&k=6LeAUPoUAAAAAOBdUQs5oApORrUFdfMBb6Hl2RdU&co=aHR0cHM6Ly93d3cuc210cDJn",
+      "title": "reCAPTCHA"
+    },
+    {
+      "src": "",
+      "title": ""
+    }
+  ],
+  "links": [
+    {
+      "t": "Sign Up",
+      "href": "https://www.smtp2go.com/pricing"
+    },
+    {
+      "t": "Sign Up Free\nNo credit card required",
+      "href": "https://www.smtp2go.com/signup"
+    },
+    {
+      "t": "",
+      "href": "https://www.smtp2go.com/signup-custom/"
+    }
+  ],
+  "bodySnippet": "SMTP2GO Email delivery done right.\nPricingProduct TourCustomersFAQLog In Sign Up\n×\nStart your free account\n$79 / month\n$948 / year\nStart your free account\nWork email\nStart your free account\nFull Name\nCompany\nCreate a Password\nEnter SMS Verification Code\nPlease enter the 5 digit code sent to your phone\nDidn't get a code? Resend\nCode resent\n\nAlready registered? Log in\n\nJoin over 40,000 people and businesses using SMTP2GO.\n\nGet started with our free plan for up to 1,000 emails per month.\n\nSign Up Free\nNo credit card required\nHow many emails do you send per month?\n1K\nFree Plan\n\n0\n1\n5\n3\n0\n$\n0/mo\n\nFor testing & sending low volumes. Limited to 200 emails/day.\n\n1,000 emails/mo\n5 days of email reporting\nTicket support only\nExtra emails not permitted\nStarter\n\n7\n5\n1\n7\n0\n2\n8\n0\n5\n2\n0\n$\n15/mo\n\nAll of the essential features to take charge of your email delivery.\n\n10,000 emails/mo\n30 days of email reporting\nTicket/chat/phone support\nSubaccount management\nSMS messaging\nScheduled reporting\nExtra emails: $1.20 / thousand\nProfessional\n\n$\n75/mo\n\nFull email sending control with enhanced reporting & features.\n\n100,000 emails/mo\n30 days of email reporting\nTicket/chat/phone support\nSubaccount management\nSMS messaging\nScheduled reporting\nDedicated IP address\nEmail testing tools\nExtra emails: $0.85 / thousand\nMonthly\nAnnually\nAll prices in USD\n\nOur Promise: If you don’t love us within 30 days, we’ll give you a full refund.\n\nFree\n\n$\n0/mo\n\nStarter\n\n$\n15/mo\n\nProfessional\n\n$\n75/mo\n\nSending Features\nFree\nSt"
+}
