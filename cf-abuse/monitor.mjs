@@ -38,16 +38,25 @@ const monitors = readJ(MONITORS, { watch: [] });
 const detections = readJ(DETECTIONS, { detections: [] });
 
 function patternOf(domain) {
-  const m = domain.match(/^([a-z-]+?)(\d+)\.([a-z.]+)$/i);
+  // hazir desen: herabetN.cam
+  const np = String(domain || "").match(/^([a-z-]+?)N\.([a-z.]+)$/i);
+  if (np) return { stem: np[1].toLowerCase(), num: null, tld: np[2].toLowerCase() };
+  const m = String(domain || "").match(/^([a-z-]+?)(\d+)\.([a-z.]+)$/i);
   if (!m) return null;
-  return { stem: m[1], num: Number(m[2]), tld: m[3] };
+  return { stem: m[1].toLowerCase(), num: Number(m[2]), tld: m[3].toLowerCase() };
 }
 
+// desen (stem+tld) bazli dedupe: ayni desen bir kez izlenir
 function addWatch(domain, official = "", brand = "") {
   const p = patternOf(domain);
   if (!p) return null;
-  const hit = monitors.watch.find((w) => w.domain === domain);
-  if (hit) { if (official) hit.official = official; if (brand) hit.brand = brand; return hit; }
+  const hit = monitors.watch.find((w) => w.stem === p.stem && w.tld === p.tld);
+  if (hit) {
+    if (official) hit.official = official;
+    if (brand) hit.brand = brand;
+    if (hit.num == null && p.num != null) hit.num = p.num;
+    return hit;
+  }
   const w = { domain, ...p, official, brand, addedTs: new Date().toISOString(), lastCheck: null };
   monitors.watch.push(w);
   return w;
@@ -95,9 +104,20 @@ async function captureEvidence(domain) {
 }
 
 async function scanWatch(w) {
+  // merkez numara: kayitli num yoksa state'te bilinen bu desenin en buyuk numarasi
+  let center = w.num;
+  if (center == null) {
+    const re = new RegExp(`^${w.stem}(\\d+)\\.${w.tld.replace(/\./g, "\\.")}$`, "i");
+    const known = Object.keys(state.seen).map((d) => d.match(re)).filter(Boolean).map((m) => Number(m[1]));
+    if (known.length) center = Math.max(...known);
+  }
+  if (center == null) {
+    console.log(`${w.stem}N.${w.tld}: taban numara yok, tarama atlaniyor (ornek: ${w.stem}123.${w.tld} olarak ekle)`);
+    return { active: 0, fresh: 0, total: 0 };
+  }
   const candidates = [];
-  for (let n = Math.max(0, w.num - SPAN); n <= w.num + SPAN; n++) {
-    if (n === w.num) continue;
+  for (let n = Math.max(0, center - SPAN); n <= center + SPAN; n++) {
+    if (n === w.num) continue; // parent'in kendisi
     candidates.push(`${w.stem}${n}.${w.tld}`);
   }
   const active = [];

@@ -24,21 +24,36 @@ const loadMonitors = () => readJ(MONITORS, { watch: [] });
 const loadDetections = () => readJ(DETECTIONS, { detections: [] });
 
 function patternOf(domain) {
+  const np = String(domain || "").match(/^([a-z-]+?)N\.([a-z.]+)$/i);
+  if (np) return { stem: np[1].toLowerCase(), num: null, tld: np[2].toLowerCase() };
   const m = String(domain || "").match(/^([a-z-]+?)(\d+)\.([a-z.]+)$/i);
-  return m ? { stem: m[1], num: Number(m[2]), tld: m[3] } : null;
+  return m ? { stem: m[1].toLowerCase(), num: Number(m[2]), tld: m[3].toLowerCase() } : null;
+}
+
+// desen (stem+tld) bazli dedupe ile watch'a ekle — autoWatch ve /api/monitors/add ortak
+function upsertWatch({ domain, official = "", brand = "" }) {
+  const p = patternOf(domain);
+  if (!p) return null;
+  const monitors = loadMonitors();
+  const hit = monitors.watch.find((w) => w.stem === p.stem && w.tld === p.tld);
+  if (hit) {
+    if (official) hit.official = official;
+    if (brand) hit.brand = brand;
+    if (hit.num == null && p.num != null) hit.num = p.num;
+    writeJ(MONITORS, monitors);
+    return { entry: hit, created: false };
+  }
+  const w = { domain, ...p, official, brand, addedTs: new Date().toISOString(), lastCheck: null };
+  monitors.watch.push(w);
+  writeJ(MONITORS, monitors);
+  return { entry: w, created: true };
 }
 
 // fire edilen hedefi monitor watch listesine ekle (desen uretilebiliyorsa)
 function autoWatch(target, official, brand) {
   try {
     const domain = new URL(target).hostname.replace(/^www\./, "");
-    const p = patternOf(domain);
-    if (!p) return;
-    const monitors = loadMonitors();
-    const hit = monitors.watch.find((w) => w.domain === domain);
-    if (hit) { if (official) hit.official = official; if (brand) hit.brand = brand; }
-    else monitors.watch.push({ domain, ...p, official: official || "", brand: brand || "", addedTs: new Date().toISOString(), lastCheck: null });
-    writeJ(MONITORS, monitors);
+    upsertWatch({ domain, official, brand });
   } catch {}
 }
 
@@ -191,6 +206,15 @@ app.post("/api/detections/dismiss", (req, res) => {
   writeJ(DETECTIONS, store);
   log(`>> tespit yoksayildi: ${domain}`);
   res.json({ ok: true });
+});
+
+app.post("/api/monitors/add", (req, res) => {
+  const domain = String(req.body?.domain ?? "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "");
+  if (!domain) return res.status(400).json({ error: "domain veya desen gerekli" });
+  const r = upsertWatch({ domain, official: String(req.body?.official ?? ""), brand: String(req.body?.brand ?? "") });
+  if (!r) return res.status(400).json({ error: `desen uretilemedi: ${domain} (orn. rovbet123.com veya herabetN.cam)` });
+  log(`>> monitor izlemesine eklendi: ${r.entry.stem}N.${r.entry.tld}${r.created ? "" : " (desen zaten vardi, guncellendi)"}`);
+  res.json({ ok: true, created: r.created, pattern: `${r.entry.stem}N.${r.entry.tld}` });
 });
 
 app.post("/api/monitors/remove", (req, res) => {

@@ -122,6 +122,9 @@ tbody tr:last-child td{border-bottom:none}
 
 /* ── domain monitörü ── */
 .mon-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.mon-add{display:flex;gap:8px}
+.mon-add .inp{flex:1;font-size:11.5px;padding:7px 10px}
+.mon-add .btn-fire{flex-shrink:0}
 .mon-chip{display:inline-flex;align-items:center;gap:6px}
 .mon-chip button{background:none;border:none;color:var(--dim);font:inherit;font-size:11px;cursor:pointer;padding:0 1px}
 .mon-chip button:hover{color:var(--fail)}
@@ -206,7 +209,8 @@ tbody tr:last-child td{border-bottom:none}
         <div class="card-h"><h2>Domain Monitörü</h2><span class="t-dim" style="font-size:10px" id="monCount"></span></div>
         <div class="card-b">
           <div class="field" style="margin-bottom:8px"><label>İzlenen desenler</label>
-            <div class="mon-chips" id="monChips"></div></div>
+            <div class="mon-chips" id="monChips"></div>
+            <div class="mon-add"><input class="inp" id="monAddInp" placeholder="domain veya desen ekle… (örn. rovbet123.com veya herabetN.cam)" spellcheck="false"><button class="btn-fire" id="monAddBtn">Ekle</button></div></div>
           <div class="field" style="margin-bottom:0"><label>Bekleyen tespitler (onay gerekli)</label>
             <div id="detList"></div></div>
         </div>
@@ -414,6 +418,18 @@ function renderMonitors(d) {
     $('#lightboxImg').src = img.dataset.ev; $('#lightbox').style.display = 'flex';
   }));
 }
+async function addMonitor() {
+  const domain = $('#monAddInp').value.trim();
+  if (!domain) return;
+  $('#monAddBtn').disabled = true;
+  const r = await api('/api/monitors/add', { domain });
+  $('#monAddBtn').disabled = false;
+  if (r.error) return alert(r.error);
+  $('#monAddInp').value = '';
+  poll();
+}
+$('#monAddBtn').addEventListener('click', addMonitor);
+$('#monAddInp').addEventListener('keydown', (e) => { if (e.key === 'Enter') addMonitor(); });
 
 async function poll() {
   try {
