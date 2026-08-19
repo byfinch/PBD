@@ -113,8 +113,8 @@ tbody tr:last-child td{border-bottom:none}
 .ev:hover{border-color:var(--border-acc)}
 .ev img{width:100%;height:100%;object-fit:cover;object-position:top;display:block;opacity:.85;transition:opacity .15s}
 .ev:hover img{opacity:1}
-.ev span{position:absolute;left:0;right:0;bottom:0;padding:4px 7px;font-size:9px;color:var(--soft);
-  background:linear-gradient(transparent,rgba(0,0,0,.9));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev span{position:absolute;left:0;right:0;bottom:0;padding:4px 7px;font-size:10px;color:var(--text);
+  background:rgba(0,0,0,.92);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ev-btn{background:none;border:1px solid var(--border);color:var(--cyan);font:inherit;font-size:10px;letter-spacing:1px;
   padding:3px 10px;cursor:pointer;border-radius:3px;white-space:nowrap;transition:.15s}
 .ev-btn:hover:not(:disabled){border-color:rgba(56,200,232,.5);box-shadow:0 0 10px rgba(56,200,232,.15)}
@@ -200,6 +200,7 @@ tbody tr:last-child td{border-bottom:none}
               <option value="gsb">Sadece Safe Browsing</option>
             </select></div>
           <button class="fire" id="fire">Saldırıyı Başlat</button>
+          <div id="queueLine" style="margin-top:10px"></div>
           <div class="form-note">önce feed'ler (urlscan/VT/APWG/CRDF) + registrar/hosting abuse maili anında gider; sonra 10 profil sırayla CF/GSB raporlar; metin şablonu, kimlik + exit rotasyonu, turnstile ve kanıt toplama otomatiktir</div>
         </div>
       </div>
@@ -264,7 +265,7 @@ function evFor(r) {
   const end = new Date(r.ts).getTime();
   const start = end - (r.ms ?? 0) - 15000;
   return allEvidence
-    .filter((e) => e.name.startsWith('kanit-') && e.mtime >= start && e.mtime <= end + 20000)
+    .filter((e) => /^kanit-(?!monitor-).+-(filled|result)-\d+\.jpe?g$/i.test(e.name) && e.mtime >= start && e.mtime <= end + 20000)
     .sort((a, b) => a.mtime - b.mtime);
 }
 const evLabel = (name) => {
@@ -436,8 +437,11 @@ async function poll() {
     const d = await api('/api/state');
     const on = !!d.running;
     $('#runState').className = 'status' + (on ? ' on' : '');
-    $('#runText').textContent = on ? 'çalışıyor: ' + d.running.replace(/^https?:\/\//, '') : 'idle';
-    $('#fire').disabled = on;
+    $('#runText').textContent = on
+      ? 'çalışıyor: ' + d.running.replace(/^https?:\/\//, '') + ((d.queue?.length ?? 0) ? ` (+${d.queue.length} kuyrukta)` : '')
+      : 'idle';
+    $('#fire').disabled = on && (d.queue?.length ?? 0) >= 5;
+    renderQueue(d.queue ?? []);
 
     const log = $('#log');
     const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
@@ -464,6 +468,19 @@ $('#fire').addEventListener('click', async () => {
   if (r.error) return alert(r.error);
   poll();
 });
+
+// saldiri kuyrugu satiri (iptal butonlu)
+function renderQueue(q) {
+  $('#queueLine').innerHTML = q.length
+    ? '<div class="field" style="margin-bottom:0"><label>Saldırı kuyruğu (FIFO)</label><div class="mon-chips" style="margin-bottom:0">' +
+      q.map((x, i) => `
+        <span class="chip plain mon-chip" title="kuyruğa giriş: ${fmtT(x.queuedTs)}">${i + 1}. ${esc((x.target || '').replace(/^https?:\/\//, '').slice(0, 30))}<button data-qcancel="${esc(x.target)}" title="kuyruktan iptal">×</button></span>`).join('') +
+      '</div></div>'
+    : '';
+  document.querySelectorAll('[data-qcancel]').forEach((b) => b.addEventListener('click', async () => {
+    await api('/api/queue/cancel', { target: b.dataset.qcancel }); poll();
+  }));
+}
 
 function boot() { poll(); setInterval(poll, 3000); }
 fetch('/api/state')

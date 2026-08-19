@@ -14,6 +14,7 @@ import { readFileSync, appendFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { Agent, fetch as uFetch } from "undici";
 import { RawCdp, sleep } from "./rawcdp.mjs";
+import { snapEvidence, cleanNewEvidence } from "./lib/evidence.mjs";
 
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
@@ -409,11 +410,14 @@ async function attempt(attemptNo) {
 
 // ── kimlik + exit rotasyonlu ana dongu (%100 hedefi: basariya kadar dene) ──
 const RETRYABLE = new Set(["EXIT_DEAD", "error", "dedupe", "submit-error", "submit-belirsiz"]);
+const EVDIR = resolve(SCRIPT_DIR, "evidence");
 for (let att = 1; att <= 5; att++) {
   console.log(`--- deneme ${att}/5 (${identity.email}) ---`);
   note = "";
+  const snap = snapEvidence(EVDIR);
   const r = await attempt(att);
   result = r;
+  if (RETRYABLE.has(r)) cleanNewEvidence(EVDIR, snap);  // basarisiz deneme kaniti birakmaz
   if (!RETRYABLE.has(r)) break;  // submitted / dry-ok
   if (att >= 5) break;
   // exit tarafi supheliyse ya da sunucu reddettiyse tazele

@@ -60,6 +60,7 @@ function autoWatch(target, official, brand) {
 const sessions = new Set();
 const activity = [];
 let running = null;
+const queue = [];  // FIFO saldiri kuyrugu: [{target, official, brand, channel, queuedTs}]
 
 function log(text) {
   activity.push({ ts: new Date().toISOString(), text });
@@ -125,6 +126,7 @@ app.get("/api/state", (_req, res) => {
   const det = loadDetections().detections;
   res.json({
     running,
+    queue,
     activity: activity.slice(-60),
     reports: reports.reverse().slice(0, 500),
     evidence: evidence.slice(0, 600),
@@ -135,8 +137,12 @@ app.get("/api/state", (_req, res) => {
 
 // saldiri zincirini baslat (feed + abuse-mail + 10 profil CF/GSB) — /api/report ve tespit onayi ortak
 function startAttack({ target, official, brand, channel }) {
-  if (running) return { status: 409, body: { error: `zaten calisiyor: ${running}` } };
   if (!target || !official) return { status: 400, body: { error: "sahte url + resmi url gerekli" } };
+  if (running) {
+    queue.push({ target, official, brand, channel: channel || "both", queuedTs: new Date().toISOString() });
+    log(`>> kuyruga alindi (${queue.length}.): ${target} (${brand || "-"})`);
+    return { status: 202, body: { queued: true, position: queue.length } };
+  }
   const ch0 = channel === "gsb" || channel === "cf" ? channel : "both";
   autoWatch(target, official, brand);
   // her zaman 10 profilin tamami, sirayla
@@ -153,7 +159,13 @@ function startAttack({ target, official, brand, channel }) {
   }
   // sirayla calistir — profiller/eszamanli cakisma olmasin
   const runNext = (i) => {
-    if (i >= jobs.length) { log(`>> bitti: ${target}`); running = null; return; }
+    if (i >= jobs.length) {
+      log(`>> bitti: ${target}`);
+      running = null;
+      const next = queue.shift();
+      if (next) { log(`>> kuyruktan basladi: ${next.target}`); startAttack(next); }
+      return;
+    }
     const [script, args] = jobs[i];
     const ch = spawn(process.execPath, [resolve(SCRIPT_DIR, script), ...args], { cwd: SCRIPT_DIR });
     ch.stdout.on("data", (d) => String(d).split("\n").filter(Boolean).forEach((l) => log(`[${script.split(".")[0]}] ` + l.trim())));
@@ -168,6 +180,16 @@ app.post("/api/report", (req, res) => {
   const { target, official, brand, channel } = req.body ?? {};
   const r = startAttack({ target, official, brand, channel });
   res.status(r.status).json(r.body);
+});
+
+// kuyruktaki hedefi iptal et (calisani durdurmaz)
+app.post("/api/queue/cancel", (req, res) => {
+  const target = String(req.body?.target ?? "");
+  const before = queue.length;
+  for (let i = queue.length - 1; i >= 0; i--) if (queue[i].target === target) queue.splice(i, 1);
+  const removed = before - queue.length;
+  if (removed) log(`>> kuyruktan iptal: ${target}`);
+  res.json({ ok: true, removed });
 });
 
 // ---- domain monitoru: tespit onay/red ----
@@ -188,11 +210,11 @@ app.post("/api/detections/approve", (req, res) => {
   const official = det.official || "";
   const brand = det.brand || "";
   const r = startAttack({ target: `https://${domain}/`, official, brand, channel: "both" });
-  if (r.status !== 200) return res.status(r.status).json(r.body);
+  if (r.status !== 200 && r.status !== 202) return res.status(r.status).json(r.body);
   det.status = "approved";
   det.resolvedTs = new Date().toISOString();
   writeJ(DETECTIONS, store);
-  log(`>> tespit onaylandi: ${domain} — saldiri zinciri basladi`);
+  log(`>> tespit onaylandi: ${domain} — ${r.body.queued ? `kuyruga alindi (${r.body.position}.)` : "saldiri zinciri basladi"}`);
   res.json({ ok: true, ...r.body });
 });
 

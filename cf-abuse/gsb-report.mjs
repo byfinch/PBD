@@ -12,6 +12,7 @@ import { readFileSync, appendFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { Agent, fetch as uFetch } from "undici";
 import { RawCdp, sleep } from "./rawcdp.mjs";
+import { snapEvidence, cleanNewEvidence } from "./lib/evidence.mjs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -198,10 +199,13 @@ async function attempt() {
   }
 }
 
+const EVDIR = resolve(SCRIPT_DIR, "evidence");
 for (let att = 1; att <= 3; att++) {
   console.log(`--- deneme ${att}/3 ---`);
   note = "";
+  const snap = snapEvidence(EVDIR);
   const r = await attempt();
+  if (r === "EXIT_DEAD" || r === "error" || r === "submit-belirsiz") cleanNewEvidence(EVDIR, snap);  // basarisiz deneme kaniti birakmaz
   if (r !== "EXIT_DEAD" && r !== "error" && r !== "submit-belirsiz") { result = r; break; }
   result = r;
   if (att < 3) {
