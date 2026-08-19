@@ -97,7 +97,9 @@ async function feedMail(source, to) {
 await feedUrlscan();
 await feedVt();
 await feedMail("apwg", "reportphishing@apwg.org");
-await feedMail("crdf", "reportphishing@crdf.fr");
+// CRDF mail kabul etmiyor (reportphishing@crdf.fr -> 550 5.1.1); tek kanal threatcenter web formu
+console.log("crdf: mail kanali kapali (550) — threatcenter.crdf.fr/submit_url web formu gerekli");
+rows.push({ source: "crdf", result: "alici-yok", note: "CRDF mail kabul etmiyor; web form: threatcenter.crdf.fr/submit_url" });
 
 for (const row of rows) {
   appendFileSync(
