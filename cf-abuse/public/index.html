@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CF://ABUSE — Operasyon Paneli</title>
+<title>ABUSE://OPS — Operasyon Paneli</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13' fill='%2300ff41'>▊</text></svg>">
 <style>
 :root{
@@ -34,6 +34,19 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;opacity:.5;
 .status.on .dot{background:var(--acc);box-shadow:0 0 8px rgba(0,232,92,.7);animation:pulse 1.5s infinite}
 .status.on{color:var(--acc)}
 .top .spacer{flex:1}
+
+/* ── sekmeli navigasyon ── */
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tab{color:var(--dim);text-decoration:none;font-size:10.5px;letter-spacing:2px;text-transform:uppercase;
+  padding:6px 12px;border:1px solid transparent;border-radius:3px;transition:.15s}
+.tab:hover{color:var(--text)}
+.tab.cur{color:var(--acc);border-color:var(--border-acc);background:var(--acc-dim)}
+.sect{display:none}
+.sect.cur{display:block}
+@media(max-width:960px){
+  .top{height:auto;min-height:52px;padding:8px 16px;flex-wrap:wrap;row-gap:6px}
+  .tabs{order:3;width:100%}
+}
 .logout{background:none;border:1px solid var(--border);color:var(--dim);font:inherit;font-size:10px;letter-spacing:2px;
   padding:6px 14px;cursor:pointer;border-radius:3px;text-transform:uppercase;transition:.15s}
 .logout:hover{color:var(--fail);border-color:rgba(232,86,86,.4)}
@@ -165,8 +178,8 @@ tbody tr:last-child td{border-bottom:none}
 <div class="login" id="loginWrap">
   <div class="card">
     <div class="card-b">
-      <div class="brand-lg">CF://ABUSE</div>
-      <div class="sub">OPERASYON PANELİ</div>
+      <div class="brand-lg">ABUSE://OPS</div>
+      <div class="sub">RAPORLAMA OPERASYON PANELİ</div>
       <div class="field"><label>Kullanıcı</label><input class="inp" id="lu" autocomplete="username"></div>
       <div class="field"><label>Parola</label><input class="inp" id="lp" type="password" autocomplete="current-password"></div>
       <button class="fire" id="lbtn">Bağlan</button>
@@ -177,13 +190,21 @@ tbody tr:last-child td{border-bottom:none}
 
 <!-- TOP BAR -->
 <header class="top">
-  <div class="brand">CF://ABUSE<small>RAPORLAMA OPERASYON PANELİ</small></div>
+  <div class="brand">ABUSE://OPS<small>RAPORLAMA OPERASYON PANELİ</small></div>
+  <nav class="tabs" id="tabs">
+    <a class="tab" data-sect="sec-saldiri" href="#saldiri">Saldırı</a>
+    <a class="tab" data-sect="sec-operasyonlar" href="#operasyonlar">Operasyonlar</a>
+    <a class="tab" data-sect="sec-monitor" href="#monitor">Monitör</a>
+    <a class="tab" data-sect="sec-markalar" href="#markalar">Markalar</a>
+  </nav>
   <div class="status" id="runState"><span class="dot"></span><span id="runText">idle</span></div>
   <div class="spacer"></div>
   <button class="logout" id="logout">Çıkış</button>
 </header>
 
 <main class="wrap">
+  <!-- SEKME: SALDIRI -->
+  <section class="sect" id="sec-saldiri">
   <div class="grid">
     <!-- SOL: saldırı başlat -->
     <div class="col">
@@ -208,31 +229,6 @@ tbody tr:last-child td{border-bottom:none}
           <div class="form-note">önce feed'ler (urlscan/VT/APWG/CRDF) + registrar/hosting abuse maili anında gider; sonra 10 profil sırayla CF/GSB raporlar; metin şablonu, kimlik + exit rotasyonu, turnstile ve kanıt toplama otomatiktir</div>
         </div>
       </div>
-
-      <!-- MARKALAR -->
-      <div class="card">
-        <div class="card-h"><h2>Markalar</h2><span class="t-dim" style="font-size:10px" id="brandCount"></span></div>
-        <div class="card-b">
-          <div class="mon-add" style="margin-bottom:10px">
-            <input class="inp" id="brandNameInp" placeholder="marka adı" spellcheck="false" style="max-width:120px">
-            <input class="inp" id="brandUrlInp" placeholder="resolver linki (kısa link)" spellcheck="false">
-            <button class="btn-fire" id="brandAddBtn">Ekle</button>
-          </div>
-          <div class="det-table" id="brandList2"></div>
-        </div>
-      </div>
-
-      <!-- DOMAIN MONİTÖRÜ -->
-      <div class="card">
-        <div class="card-h"><h2>Domain Monitörü</h2><span class="t-dim" style="font-size:10px" id="monCount"></span></div>
-        <div class="card-b">
-          <div class="field" style="margin-bottom:8px"><label>İzlenen desenler</label>
-            <div class="mon-chips" id="monChips"></div>
-            <div class="mon-add"><input class="inp" id="monAddInp" placeholder="domain veya desen ekle… (örn. rovbet123.com veya herabetN.cam)" spellcheck="false"><button class="btn-fire" id="monAddBtn">Ekle</button></div></div>
-          <div class="field" style="margin-bottom:0"><label>Bekleyen tespitler (onay gerekli)</label>
-            <div id="detList"></div></div>
-        </div>
-      </div>
     </div>
 
     <!-- SAĞ: konsol -->
@@ -243,9 +239,11 @@ tbody tr:last-child td{border-bottom:none}
       </div>
     </div>
   </div>
+  </section>
 
-  <!-- ALT: geçmiş saldırılar -->
-  <div class="card" style="margin-top:20px">
+  <!-- SEKME: OPERASYONLAR -->
+  <section class="sect" id="sec-operasyonlar">
+  <div class="card">
     <div class="card-h"><h2>Geçmiş Saldırılar</h2><span class="t-dim" style="font-size:10px" id="repCount"></span></div>
     <div style="overflow-x:auto">
       <table>
@@ -257,6 +255,36 @@ tbody tr:last-child td{border-bottom:none}
     </div>
     <div class="pager" id="pager"></div>
   </div>
+  </section>
+
+  <!-- SEKME: MARKALAR -->
+  <section class="sect" id="sec-markalar">
+      <div class="card">
+        <div class="card-h"><h2>Markalar</h2><span class="t-dim" style="font-size:10px" id="brandCount"></span></div>
+        <div class="card-b">
+          <div class="mon-add" style="margin-bottom:10px">
+            <input class="inp" id="brandNameInp" placeholder="marka adı" spellcheck="false" style="max-width:120px">
+            <input class="inp" id="brandUrlInp" placeholder="resolver linki (kısa link)" spellcheck="false">
+            <button class="btn-fire" id="brandAddBtn">Ekle</button>
+          </div>
+          <div class="det-table" id="brandList2"></div>
+        </div>
+      </div>
+  </section>
+
+  <!-- SEKME: MONİTÖR -->
+  <section class="sect" id="sec-monitor">
+      <div class="card">
+        <div class="card-h"><h2>Domain Monitörü</h2><span class="t-dim" style="font-size:10px" id="monCount"></span></div>
+        <div class="card-b">
+          <div class="field" style="margin-bottom:8px"><label>İzlenen desenler</label>
+            <div class="mon-chips" id="monChips"></div>
+            <div class="mon-add"><input class="inp" id="monAddInp" placeholder="domain veya desen ekle… (örn. rovbet123.com veya herabetN.cam)" spellcheck="false"><button class="btn-fire" id="monAddBtn">Ekle</button></div></div>
+          <div class="field" style="margin-bottom:0"><label>Bekleyen tespitler (onay gerekli)</label>
+            <div id="detList"></div></div>
+        </div>
+      </div>
+  </section>
 </main>
 
 <div class="lightbox" id="lightbox"><img id="lightboxImg"></div>
@@ -544,6 +572,18 @@ function renderQueue(q) {
 }
 
 function boot() { poll(); setInterval(poll, 3000); }
+
+// ── sekmeli navigasyon (hash destekli) ──
+const HASH2SECT = { '#saldiri': 'sec-saldiri', '#operasyonlar': 'sec-operasyonlar', '#monitor': 'sec-monitor', '#markalar': 'sec-markalar' };
+function showSect(id) {
+  document.querySelectorAll('.sect').forEach((s) => s.classList.toggle('cur', s.id === id));
+  document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('cur', t.dataset.sect === id));
+}
+function syncTabFromHash() {
+  showSect(HASH2SECT[location.hash] || 'sec-saldiri');
+}
+window.addEventListener('hashchange', syncTabFromHash);
+syncTabFromHash();
 fetch('/api/state')
   .then((r) => (r.status === 401 ? ($('#loginWrap').style.display = 'flex') : boot()))
   .catch(() => ($('#loginWrap').style.display = 'flex'));
