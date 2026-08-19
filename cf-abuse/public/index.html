@@ -445,7 +445,7 @@ function renderMonitors(d) {
         <button class="btn-dim" data-dis="${esc(x.domain)}">Yoksay</button>
       </span>
     </div>`,
-  ).join('') + `</div>` || '<div class="empty"># bekleyen tespit yok</div>';
+  ).join('') + `</div>` : '<div class="empty"># bekleyen tespit yok</div>';
   document.querySelectorAll('[data-mon]').forEach((b) => b.addEventListener('click', async () => {
     await api('/api/monitors/remove', { domain: b.dataset.mon }); poll();
   }));
