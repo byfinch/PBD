@@ -182,6 +182,12 @@ async function scanWatch(w) {
     if (detections.detections.some((x) => x.domain === a.domain)) continue;
     console.log(`YENI DOMAIN: ${a.domain} (${a.ip}) — redirect analizi`);
     const probe = await httpProbe(a.domain);
+    // HTTP cevabi yoksa (baglanti/TLS/timeout) olu sayilir — tespit uretme
+    if (!probe.status) {
+      console.log(`  olu domain: ${a.domain} (${probe.error || "cevap yok"}) — tespit sayilmadi`);
+      await panelLog(`olu domain: ${a.domain} (${probe.error || "baglanti hatasi"}) — tespit sayilmadi`);
+      continue;
+    }
     const cls = classify(w, a.domain, probe);
     const base = {
       domain: a.domain, ip: a.ip,
@@ -231,13 +237,21 @@ if (args.domain) addWatch(args.domain, args.official || "", args.brand || "");
 
 // --reclassify: pending tespitleri redirect mantigiyla yeniden degerlendir (tek seferlik temizlik)
 if (args.reclassify) {
-  let changed = 0;
+  let changed = 0, dead = 0;
   for (const det of detections.detections.filter((d) => d.status === "pending")) {
     const w = watchOf(det.domain);
     if (!w) continue;
     const probe = await httpProbe(det.domain);
     det.finalDomain = probe.finalDomain;
     det.redirectChain = probe.chain;
+    if (!probe.status) {
+      det.status = "dead";
+      det.note = `olu site: ${probe.error || "cevap yok"}`;
+      det.resolvedTs = new Date().toISOString();
+      dead++;
+      console.log(`dead: ${det.domain} (${probe.error || "cevap yok"})`);
+      continue;
+    }
     if (classify(w, det.domain, probe) === "redirect-main") {
       det.status = "redirect-main";
       det.note = `ana siteye yonlendiriyor: ${probe.finalDomain}`;
@@ -247,7 +261,15 @@ if (args.reclassify) {
     }
   }
   writeJ(DETECTIONS, detections);
-  console.log(`SONUC: reclassify ${changed} tespit redirect-main oldu, ${detections.detections.filter((d) => d.status === "pending").length} pending kaldi`);
+  console.log(`SONUC: reclassify ${changed} redirect-main, ${dead} dead, ${detections.detections.filter((d) => d.status === "pending").length} pending kaldi`);
+  process.exit(0);
+}
+
+// --probe <domain>: tek domain canli/redirect testi (tani)
+if (args.probe) {
+  const probe = await httpProbe(String(args.probe));
+  console.log(JSON.stringify(probe, null, 1));
+  console.log(probe.status ? `CANLI (http ${probe.status}) final=${probe.finalDomain}` : `DEAD (${probe.error || "cevap yok"})`);
   process.exit(0);
 }
 
