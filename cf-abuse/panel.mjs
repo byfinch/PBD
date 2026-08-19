@@ -12,9 +12,35 @@ import express from "express";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const LOG = resolve(SCRIPT_DIR, "reports.jsonl");
+const MONITORS = resolve(SCRIPT_DIR, "monitors.json");
+const DETECTIONS = resolve(SCRIPT_DIR, "detections.json");
 const PORT = Number(process.env.PANEL_PORT ?? 3090);
 const USER = process.env.PANEL_USER ?? "admin";
 const PASS = process.env.PANEL_PASSWORD ?? "pbd2026";
+
+const readJ = (p, dflt) => { try { return JSON.parse(readFileSync(p, "utf8")); } catch { return dflt; } };
+const writeJ = (p, v) => writeFileSync(p, JSON.stringify(v, null, 1));
+const loadMonitors = () => readJ(MONITORS, { watch: [] });
+const loadDetections = () => readJ(DETECTIONS, { detections: [] });
+
+function patternOf(domain) {
+  const m = String(domain || "").match(/^([a-z-]+?)(\d+)\.([a-z.]+)$/i);
+  return m ? { stem: m[1], num: Number(m[2]), tld: m[3] } : null;
+}
+
+// fire edilen hedefi monitor watch listesine ekle (desen uretilebiliyorsa)
+function autoWatch(target, official, brand) {
+  try {
+    const domain = new URL(target).hostname.replace(/^www\./, "");
+    const p = patternOf(domain);
+    if (!p) return;
+    const monitors = loadMonitors();
+    const hit = monitors.watch.find((w) => w.domain === domain);
+    if (hit) { if (official) hit.official = official; if (brand) hit.brand = brand; }
+    else monitors.watch.push({ domain, ...p, official: official || "", brand: brand || "", addedTs: new Date().toISOString(), lastCheck: null });
+    writeJ(MONITORS, monitors);
+  } catch {}
+}
 
 const sessions = new Set();
 const activity = [];
@@ -81,14 +107,23 @@ app.get("/api/state", (_req, res) => {
     }
     evidence.sort((a, b) => b.mtime - a.mtime);
   }
-  res.json({ running, activity: activity.slice(-60), reports: reports.reverse().slice(0, 500), evidence: evidence.slice(0, 600) });
+  const det = loadDetections().detections;
+  res.json({
+    running,
+    activity: activity.slice(-60),
+    reports: reports.reverse().slice(0, 500),
+    evidence: evidence.slice(0, 600),
+    monitors: loadMonitors().watch,
+    detections: det.filter((d) => d.status === "pending"),
+  });
 });
 
-app.post("/api/report", (req, res) => {
-  if (running) return res.status(409).json({ error: `zaten calisiyor: ${running}` });
-  const { target, official, brand, channel } = req.body ?? {};
-  if (!target || !official) return res.status(400).json({ error: "sahte url + resmi url gerekli" });
+// saldiri zincirini baslat (feed + abuse-mail + 10 profil CF/GSB) — /api/report ve tespit onayi ortak
+function startAttack({ target, official, brand, channel }) {
+  if (running) return { status: 409, body: { error: `zaten calisiyor: ${running}` } };
+  if (!target || !official) return { status: 400, body: { error: "sahte url + resmi url gerekli" } };
   const ch0 = channel === "gsb" || channel === "cf" ? channel : "both";
+  autoWatch(target, official, brand);
   // her zaman 10 profilin tamami, sirayla
   const profiles = JSON.parse(readFileSync(resolve(SCRIPT_DIR, "../config/profiles.json"), "utf8")).profiles.map((p) => p.name);
   running = target;
@@ -111,7 +146,60 @@ app.post("/api/report", (req, res) => {
     ch.on("close", () => setTimeout(() => runNext(i + 1), 8000));  // launcher nefes alsin
   };
   runNext(0);
-  res.json({ started: true, channel: ch0, profiles: profiles.length });
+  return { status: 200, body: { started: true, channel: ch0, profiles: profiles.length } };
+}
+
+app.post("/api/report", (req, res) => {
+  const { target, official, brand, channel } = req.body ?? {};
+  const r = startAttack({ target, official, brand, channel });
+  res.status(r.status).json(r.body);
+});
+
+// ---- domain monitoru: tespit onay/red ----
+
+app.get("/api/detections", (_req, res) => {
+  const det = loadDetections().detections;
+  res.json({
+    pending: det.filter((d) => d.status === "pending"),
+    resolved: det.filter((d) => d.status !== "pending").slice(-20).reverse(),
+  });
+});
+
+app.post("/api/detections/approve", (req, res) => {
+  const domain = String(req.body?.domain ?? "");
+  const store = loadDetections();
+  const det = store.detections.find((d) => d.domain === domain && d.status === "pending");
+  if (!det) return res.status(404).json({ error: "pending tespit yok" });
+  const official = det.official || "";
+  const brand = det.brand || "";
+  const r = startAttack({ target: `https://${domain}/`, official, brand, channel: "both" });
+  if (r.status !== 200) return res.status(r.status).json(r.body);
+  det.status = "approved";
+  det.resolvedTs = new Date().toISOString();
+  writeJ(DETECTIONS, store);
+  log(`>> tespit onaylandi: ${domain} — saldiri zinciri basladi`);
+  res.json({ ok: true, ...r.body });
+});
+
+app.post("/api/detections/dismiss", (req, res) => {
+  const domain = String(req.body?.domain ?? "");
+  const store = loadDetections();
+  const det = store.detections.find((d) => d.domain === domain && d.status === "pending");
+  if (!det) return res.status(404).json({ error: "pending tespit yok" });
+  det.status = "dismissed";
+  det.resolvedTs = new Date().toISOString();
+  writeJ(DETECTIONS, store);
+  log(`>> tespit yoksayildi: ${domain}`);
+  res.json({ ok: true });
+});
+
+app.post("/api/monitors/remove", (req, res) => {
+  const domain = String(req.body?.domain ?? "");
+  const monitors = loadMonitors();
+  const before = monitors.watch.length;
+  monitors.watch = monitors.watch.filter((w) => w.domain !== domain);
+  writeJ(MONITORS, monitors);
+  res.json({ ok: true, removed: before - monitors.watch.length });
 });
 
 app.listen(PORT, () => console.log(`cf-abuse panel: http://localhost:${PORT} (${USER})`));

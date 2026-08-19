@@ -119,6 +119,26 @@ tbody tr:last-child td{border-bottom:none}
   padding:3px 10px;cursor:pointer;border-radius:3px;white-space:nowrap;transition:.15s}
 .ev-btn:hover:not(:disabled){border-color:rgba(56,200,232,.5);box-shadow:0 0 10px rgba(56,200,232,.15)}
 .ev-btn:disabled{opacity:.3;cursor:default;color:var(--dim)}
+
+/* ── domain monitörü ── */
+.mon-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.mon-chip{display:inline-flex;align-items:center;gap:6px}
+.mon-chip button{background:none;border:none;color:var(--dim);font:inherit;font-size:11px;cursor:pointer;padding:0 1px}
+.mon-chip button:hover{color:var(--fail)}
+.det{border:1px solid var(--border);border-radius:4px;padding:10px 12px;margin-bottom:8px;background:var(--surface2)}
+.det-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.det-domain{color:#b8e6c8;font-weight:700}
+.det-meta{color:var(--dim);font-size:10.5px;flex:1;min-width:120px}
+.det-note{color:var(--faint);font-size:10px;margin-top:6px}
+.det-ev{width:46px;height:34px;object-fit:cover;object-position:top;border:1px solid var(--border);border-radius:3px;cursor:zoom-in}
+.det-act{display:flex;gap:6px}
+.btn-fire{background:var(--acc);border:none;color:#02130a;font:inherit;font-size:9.5px;font-weight:700;letter-spacing:1.5px;
+  padding:6px 12px;cursor:pointer;border-radius:3px;text-transform:uppercase;transition:.15s}
+.btn-fire:hover:not(:disabled){box-shadow:0 0 12px rgba(0,232,92,.35)}
+.btn-fire:disabled{opacity:.35;cursor:not-allowed}
+.btn-dim{background:none;border:1px solid var(--border);color:var(--dim);font:inherit;font-size:9.5px;letter-spacing:1.5px;
+  padding:6px 12px;cursor:pointer;border-radius:3px;text-transform:uppercase;transition:.15s}
+.btn-dim:hover{color:var(--fail);border-color:rgba(232,86,86,.4)}
 .lightbox{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;
   background:rgba(0,0,0,.9);cursor:zoom-out;padding:40px}
 .lightbox img{max-width:100%;max-height:100%;border:1px solid var(--border-acc);border-radius:6px}
@@ -178,6 +198,17 @@ tbody tr:last-child td{border-bottom:none}
             </select></div>
           <button class="fire" id="fire">Saldırıyı Başlat</button>
           <div class="form-note">önce feed'ler (urlscan/VT/APWG/CRDF) + registrar/hosting abuse maili anında gider; sonra 10 profil sırayla CF/GSB raporlar; metin şablonu, kimlik + exit rotasyonu, turnstile ve kanıt toplama otomatiktir</div>
+        </div>
+      </div>
+
+      <!-- DOMAIN MONİTÖRÜ -->
+      <div class="card">
+        <div class="card-h"><h2>Domain Monitörü</h2><span class="t-dim" style="font-size:10px" id="monCount"></span></div>
+        <div class="card-b">
+          <div class="field" style="margin-bottom:8px"><label>İzlenen desenler</label>
+            <div class="mon-chips" id="monChips"></div></div>
+          <div class="field" style="margin-bottom:0"><label>Bekleyen tespitler (onay gerekli)</label>
+            <div id="detList"></div></div>
         </div>
       </div>
     </div>
@@ -345,6 +376,45 @@ function renderTable() {
 function renderEvidence() { /* kaldirildi — kanitlar satir bazli modalda */ }
 $('#lightbox').addEventListener('click', () => { $('#lightbox').style.display = 'none'; });
 
+// ── domain monitörü ──
+function renderMonitors(d) {
+  const watch = d.monitors ?? [];
+  const det = d.detections ?? [];
+  $('#monCount').textContent = `${watch.length} desen · ${det.length} bekleyen`;
+  $('#monChips').innerHTML = watch.map((w) => `
+    <span class="chip info mon-chip" title="ekleme: ${esc((w.addedTs || '').slice(0, 10))}${w.lastCheck ? ' · son kontrol: ' + fmtT(w.lastCheck) : ''}">${esc(w.stem)}N.${esc(w.tld)}<button data-mon="${esc(w.domain)}" title="izlemeyi kaldır">×</button></span>`,
+  ).join('') || '<span class="t-dim" style="font-size:10.5px">— saldırılan hedefler otomatik eklenir —</span>';
+  $('#detList').innerHTML = det.map((x) => `
+    <div class="det">
+      <div class="det-top">
+        ${x.evidence ? `<img class="det-ev" src="/evidence/${esc(x.evidence)}" data-ev="/evidence/${esc(x.evidence)}" alt="">` : ''}
+        <span class="det-domain">${esc(x.domain)}</span>
+        <span class="det-meta">${esc(x.ip || '')} · ${fmtT(x.ts)} · üst: ${esc((x.parentTarget || '').replace(/^https?:\/\//, ''))}</span>
+        <span class="det-act">
+          <button class="btn-fire" data-app="${esc(x.domain)}">Saldırı Başlat</button>
+          <button class="btn-dim" data-dis="${esc(x.domain)}">Yoksay</button>
+        </span>
+      </div>
+      ${x.note ? `<div class="det-note"># ${esc(x.note)}</div>` : ''}
+    </div>`,
+  ).join('') || '<div class="empty"># bekleyen tespit yok</div>';
+  document.querySelectorAll('[data-mon]').forEach((b) => b.addEventListener('click', async () => {
+    await api('/api/monitors/remove', { domain: b.dataset.mon }); poll();
+  }));
+  document.querySelectorAll('[data-app]').forEach((b) => b.addEventListener('click', async () => {
+    b.disabled = true;
+    const r = await api('/api/detections/approve', { domain: b.dataset.app });
+    if (r.error) { alert(r.error); b.disabled = false; }
+    poll();
+  }));
+  document.querySelectorAll('[data-dis]').forEach((b) => b.addEventListener('click', async () => {
+    await api('/api/detections/dismiss', { domain: b.dataset.dis }); poll();
+  }));
+  document.querySelectorAll('.det-ev').forEach((img) => img.addEventListener('click', () => {
+    $('#lightboxImg').src = img.dataset.ev; $('#lightbox').style.display = 'flex';
+  }));
+}
+
 async function poll() {
   try {
     const d = await api('/api/state');
@@ -365,8 +435,9 @@ async function poll() {
     }).join('') || '<div class="empty"># henüz aktivite yok</div>';
     if (atBottom) log.scrollTop = log.scrollHeight;
 
-    const sig = JSON.stringify((d.reports ?? []).slice(0, 3).map((r) => r.ts)) + (d.reports?.length ?? 0) + (d.evidence?.length ?? 0);
-    if (sig !== poll._lastSig) { poll._lastSig = sig; allReports = d.reports ?? []; allEvidence = d.evidence ?? []; renderTable(); }
+    const sig = JSON.stringify((d.reports ?? []).slice(0, 3).map((r) => r.ts)) + (d.reports?.length ?? 0) + (d.evidence?.length ?? 0)
+      + JSON.stringify((d.detections ?? []).map((x) => x.domain + x.status)) + (d.monitors?.length ?? 0);
+    if (sig !== poll._lastSig) { poll._lastSig = sig; allReports = d.reports ?? []; allEvidence = d.evidence ?? []; renderTable(); renderMonitors(d); }
   } catch (e) {}
 }
 
